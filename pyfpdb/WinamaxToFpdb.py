@@ -69,12 +69,15 @@ class Winamax(HandHistoryConverter):
 
 # Winamax Poker - CashGame - HandId: #279823-223-1285031451 - Holdem no limit (0.02€/0.05€) - 2010/09/21 03:10:51 UTC
 # Table: 'Charenton-le-Pont' 9-max (real money) Seat #5 is the button
+# or :
+# Winamax Poker - Tournament "Super Freeroll Stade 1 - Déglingos !" buyIn: Ticket Uniquement level: 0 - HandId: #125937134132527105-1-1346325336 - Holdem no limit (10/20) - 2012/08/30 11:15:36 UTC
+# Table: 'Super Freeroll Stade 1 - Déglingos !(29322024)#0' 10-max (real money) Seat #1 is the button
     re_HandInfo = re.compile(u"""
             \s*Winamax\sPoker\s-\s
             (?P<RING>CashGame)?
             (?P<TOUR>Tournament\s
             (?P<TOURNAME>.+)?\s
-            buyIn:\s(?P<BUYIN>(?P<BIAMT>[%(LS)s\d\,.]+)?(\s\+?\s|-)(?P<BIRAKE>[%(LS)s\d\,.]+)?\+?(?P<BOUNTY>[%(LS)s\d\.]+)?\s?(?P<TOUR_ISO>%(LEGAL_ISO)s)?|Freeroll|Gratuit|Ticket\suniquement|Free|Ticket)?\s
+            buyIn:\s(?P<BUYIN>(?P<BIAMT>[%(LS)s\d\,.]+)?(\s\+?\s|-)(?P<BIRAKE>[%(LS)s\d\,.]+)?\+?(?P<BOUNTY>[%(LS)s\d\.]+)?\s?(?P<TOUR_ISO>%(LEGAL_ISO)s)?|Freeroll|Gratuit|Ticket\sUniquement|Free|Ticket\sonly)?\s
             (level:\s(?P<LEVEL>\d+))?
             .*)?
             \s-\sHandId:\s\#(?P<HID1>\d+)-(?P<HID2>\d+)-(?P<HID3>\d+).*\s  # REB says: HID3 is the correct hand number
@@ -167,7 +170,7 @@ class Winamax(HandHistoryConverter):
             info['type'] = 'tour'
         elif mg.get('RING'):
             info['type'] = 'ring'
-        
+
         if mg.get('MONEY'):
             info['currency'] = 'EUR'
         else:
@@ -186,7 +189,7 @@ class Winamax(HandHistoryConverter):
             info['sb'] = mg['SB']
         if 'BB' in mg:
             info['bb'] = mg['BB']
-            
+
         if info['limitType'] == 'fl' and info['bb'] is not None:
             if info['type'] == 'ring':
                 pass
@@ -222,7 +225,7 @@ class Winamax(HandHistoryConverter):
                 hand.handid = "%s%s%s"%(int(info['HID1']),info['HID2'],info['HID3'])
                 if len (hand.handid) > 19:
                     hand.handid = "%s%s" % (int(info['HID2']), int(info['HID3']))
-                    
+
 #            if key == 'HID3':
 #                hand.handid = int(info['HID3'])   # correct hand no (REB)
             if key == 'TOURNO':
@@ -247,7 +250,7 @@ class Winamax(HandHistoryConverter):
                         if k in info.keys() and info[k]:
                             info[k] = info[k].replace(',','.')
 
-                    if info[key] == 'Gratuit' or info[key] == 'Freeroll' or info[key] == 'Ticket uniquement':
+                    if info[key] in ('Gratuit', 'Freeroll', 'Ticket Uniquement', 'Ticket only'):
                         hand.buyin = 0
                         hand.fee = 0
                         hand.buyinCurrency = "FREE"
