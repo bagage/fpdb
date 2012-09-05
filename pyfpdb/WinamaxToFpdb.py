@@ -74,7 +74,7 @@ class Winamax(HandHistoryConverter):
             (?P<RING>CashGame)?
             (?P<TOUR>Tournament\s
             (?P<TOURNAME>.+)?\s
-            buyIn:\s(?P<BUYIN>(?P<BIAMT>[%(LS)s\d\,.]+)?(\s\+?\s|-)(?P<BIRAKE>[%(LS)s\d\,.]+)?\+?(?P<BOUNTY>[%(LS)s\d\.]+)?\s?(?P<TOUR_ISO>%(LEGAL_ISO)s)?|Freeroll|Gratuit|Ticket\suniquement|Free|Ticket)?\s
+            buyIn:\s(?P<BUYIN>(?P<BIAMT>[%(LS)s\d\,.]+)?(\s\+?\s|-)(?P<BIRAKE>[%(LS)s\d\,.]+)?\+?(?P<BOUNTY>[%(LS)s\d\.]+)?\s?(?P<TOUR_ISO>%(LEGAL_ISO)s)?|Freeroll|Gratuit|Ticket\sUniquement|Free|Ticket\sonly)?\s
             (level:\s(?P<LEVEL>\d+))?
             .*)?
             \s-\sHandId:\s\#(?P<HID1>\d+)-(?P<HID2>\d+)-(?P<HID3>\d+).*\s  # REB says: HID3 is the correct hand number
@@ -167,7 +167,7 @@ class Winamax(HandHistoryConverter):
             info['type'] = 'tour'
         elif mg.get('RING'):
             info['type'] = 'ring'
-        
+
         if mg.get('MONEY'):
             info['currency'] = 'EUR'
         else:
@@ -186,7 +186,7 @@ class Winamax(HandHistoryConverter):
             info['sb'] = mg['SB']
         if 'BB' in mg:
             info['bb'] = mg['BB']
-            
+
         if info['limitType'] == 'fl' and info['bb'] is not None:
             if info['type'] == 'ring':
                 pass
@@ -222,7 +222,7 @@ class Winamax(HandHistoryConverter):
                 hand.handid = "%s%s%s"%(int(info['HID1']),info['HID2'],info['HID3'])
                 if len (hand.handid) > 19:
                     hand.handid = "%s%s" % (int(info['HID2']), int(info['HID3']))
-                    
+
 #            if key == 'HID3':
 #                hand.handid = int(info['HID3'])   # correct hand no (REB)
             if key == 'TOURNO':
@@ -247,7 +247,7 @@ class Winamax(HandHistoryConverter):
                         if k in info.keys() and info[k]:
                             info[k] = info[k].replace(',','.')
 
-                    if info[key] in ('Gratuit', 'Freeroll', 'Ticket uniquement', 'Ticket only'):
+                    if info[key] in ('Gratuit', 'Freeroll', 'Ticket Uniquement', 'Ticket only'):
                         hand.buyin = 0
                         hand.fee = 0
                         hand.buyinCurrency = "FREE"
