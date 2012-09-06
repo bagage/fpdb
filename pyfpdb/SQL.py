@@ -3,23 +3,23 @@
 """Returns a dict of SQL statements used in fpdb.
 """
 #    Copyright 2008-2011, Ray E. Barker
-#   
+#
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation; either version 2 of the License, or
 #    (at your option) any later version.
-#   
+#
 #    This program is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 #    GNU General Public License for more details.
-#   
+#
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 #    NOTES:  The sql statements use the placeholder %s for bind variables
-#            which is then replaced by ? for sqlite. Comments can be included 
+#            which is then replaced by ? for sqlite. Comments can be included
 #            within sql statements using C style /* ... */ comments, BUT
 #            THE COMMENTS MUST NOT INCLUDE %s OR ?.
 
@@ -33,7 +33,7 @@ import re
 #    FreePokerTools modules
 
 class Sql:
-   
+
     def __init__(self, game = 'holdem', db_server = 'mysql'):
         self.query = {}
 ###############################################################################3
@@ -58,7 +58,7 @@ class Sql:
         if db_server == 'mysql':
             self.query['list_indexes'] = """SHOW INDEXES"""
         elif db_server == 'postgresql':
-            self.query['list_indexes'] = """SELECT tablename, indexname FROM PG_INDEXES""" 
+            self.query['list_indexes'] = """SELECT tablename, indexname FROM PG_INDEXES"""
         elif db_server == 'sqlite':
             self.query['list_indexes'] = """SELECT name FROM sqlite_master
                                             WHERE type='index'
@@ -68,7 +68,7 @@ class Sql:
         # Drop Tables - MySQL, PostgreSQL and SQLite all share same syntax
         ##################################################################
 
-        self.query['drop_table'] = """DROP TABLE IF EXISTS """   
+        self.query['drop_table'] = """DROP TABLE IF EXISTS """
 
 
         ##################################################################
@@ -89,9 +89,9 @@ class Sql:
         self.query['getSiteId'] = """SELECT id from Sites where name = %s"""
 
         self.query['getGames'] = """SELECT DISTINCT category from Gametypes"""
-        
+
         self.query['getCurrencies'] = """SELECT DISTINCT currency from Gametypes ORDER BY currency"""
-        
+
         self.query['getLimits'] = """SELECT DISTINCT bigBlind from Gametypes ORDER by bigBlind DESC"""
 
         self.query['getTourneyTypesIds'] = "SELECT id FROM TourneyTypes"
@@ -109,7 +109,7 @@ class Sql:
         elif db_server == 'sqlite':
             self.query['createSettingsTable'] = """CREATE TABLE Settings
             (version INTEGER NOT NULL) """
-            
+
         ################################
         # Create InsertLock
         ################################
@@ -141,7 +141,7 @@ class Sql:
                         handId BIGINT NOT NULL,
                         rawHand TEXT NOT NULL,
                         complain BOOLEAN NOT NULL DEFAULT FALSE)"""
-        
+
         ################################
         # Create RawTourneys (this table is all but identical with RawHands)
         ################################
@@ -164,7 +164,7 @@ class Sql:
                         tourneyId BIGINT NOT NULL,
                         rawTourney TEXT NOT NULL,
                         complain BOOLEAN NOT NULL DEFAULT FALSE)"""
-                        
+
         ################################
         # Create Actions
         ################################
@@ -184,8 +184,8 @@ class Sql:
             self.query['createActionsTable'] = """CREATE TABLE Actions (
                         id INTEGER PRIMARY KEY,
                         name TEXT NOT NULL,
-                        code TEXT NOT NULL)"""        
-                        
+                        code TEXT NOT NULL)"""
+
         ################################
         # Create Sites
         ################################
@@ -210,7 +210,7 @@ class Sql:
         ################################
         # Create Backings
         ################################
-        
+
         if db_server == 'mysql':
             self.query['createBackingsTable'] = """CREATE TABLE Backings (
                         id SMALLINT UNSIGNED AUTO_INCREMENT NOT NULL, PRIMARY KEY (id),
@@ -232,7 +232,7 @@ class Sql:
                         playerId INT NOT NULL,
                         buyInPercentage REAL UNSIGNED NOT NULL,
                         payOffPercentage REAL UNSIGNED NOT NULL)"""
-        
+
         ################################
         # Create Gametypes
         ################################
@@ -368,7 +368,7 @@ class Sql:
                             gametypeId SMALLINT UNSIGNED NOT NULL, FOREIGN KEY (gametypeId) REFERENCES Gametypes(id),
                             sessionId INT UNSIGNED, FOREIGN KEY (sessionId) REFERENCES SessionsCache(id),
                             gameId INT UNSIGNED, FOREIGN KEY (gameId) REFERENCES GamesCache(id),
-                            fileId INT(10) UNSIGNED NOT NULL, FOREIGN KEY (fileId) REFERENCES Files(id), 
+                            fileId INT(10) UNSIGNED NOT NULL, FOREIGN KEY (fileId) REFERENCES Files(id),
                             startTime DATETIME NOT NULL,
                             importTime DATETIME NOT NULL,
                             seats TINYINT NOT NULL,
@@ -477,7 +477,7 @@ class Sql:
                             showdownPot INT,                /* pot size at sd/street7 */
                             comment TEXT,
                             commentTs REAL)"""
-                            
+
         ################################
         # Create Boards
         ################################
@@ -664,7 +664,7 @@ class Sql:
                         totalAddOnCount INT,
                         comment TEXT,
                         commentTs REAL)"""
-                        
+
         ################################
         # Create HandsPlayers
         ################################
@@ -679,7 +679,7 @@ class Sql:
                         seatNo SMALLINT NOT NULL,
                         sitout BOOLEAN NOT NULL,
                         wentAllInOnStreet SMALLINT,
-                    
+
                         card1 smallint NOT NULL,  /* 0=none, 1-13=2-Ah 14-26=2-Ad 27-39=2-Ac 40-52=2-As */
                         card2 smallint NOT NULL,
                         card3 smallint,
@@ -701,7 +701,7 @@ class Sql:
                         card19 smallint,
                         card20 smallint,
                         startCards smallint,
-                    
+
                         ante INT,
                         winnings int NOT NULL,
                         rake int NOT NULL,
@@ -843,7 +843,7 @@ class Sql:
                         card17 smallint,
                         card18 smallint,
                         card19 smallint,
-                        card20 smallint, 
+                        card20 smallint,
                         startCards smallint,
 
                         ante INT,
@@ -966,7 +966,7 @@ class Sql:
                         seatNo INT NOT NULL,
                         sitout BOOLEAN NOT NULL,
                         wentAllInOnStreet INT,
-                    
+
                         card1 INT NOT NULL,  /* 0=none, 1-13=2-Ah 14-26=2-Ad 27-39=2-Ac 40-52=2-As */
                         card2 INT NOT NULL,
                         card3 INT,
@@ -988,7 +988,7 @@ class Sql:
                         card19 INT,
                         card20 INT,
                         startCards INT,
-                    
+
                         ante INT,
                         winnings INT NOT NULL,
                         rake INT NOT NULL,
@@ -1212,7 +1212,7 @@ class Sql:
                         numDiscarded SMALLINT,
                         cardsDiscarded TEXT,
                         allIn BOOLEAN
-                        )""" 
+                        )"""
 
 
         ################################
@@ -1251,12 +1251,12 @@ class Sql:
                         hiString TEXT,
                         loString TEXT,
                         ev INT
-                        )""" 
-                        
+                        )"""
+
         ################################
         # Create Files
         ################################
-        
+
         if db_server == 'mysql':
             self.query['createFilesTable'] = """CREATE TABLE Files (
                         id INT(10) UNSIGNED AUTO_INCREMENT NOT NULL, PRIMARY KEY (id),
@@ -1306,7 +1306,7 @@ class Sql:
                         errs INT,
                         ttime100 INT,
                         finished BOOLEAN
-                        )""" 
+                        )"""
 
         ################################
         # Create HudCache
@@ -1356,7 +1356,7 @@ class Sql:
                         street3Seen INT,
                         street4Seen INT,
                         sawShowdown INT,
-                        
+
                         street1Aggr INT,
                         street2Aggr INT,
                         street3Aggr INT,
@@ -1372,7 +1372,7 @@ class Sql:
                         foldToOtherRaisedStreet2 INT,
                         foldToOtherRaisedStreet3 INT,
                         foldToOtherRaisedStreet4 INT,
-                        
+
                         raiseFirstInChance INT,
                         raisedFirstIn INT,
                         foldBbToStealChance INT,
@@ -1388,7 +1388,7 @@ class Sql:
                         street3CBDone INT,
                         street4CBChance INT,
                         street4CBDone INT,
-                        
+
                         foldToStreet1CBChance INT,
                         foldToStreet1CBDone INT,
                         foldToStreet2CBChance INT,
@@ -1397,10 +1397,10 @@ class Sql:
                         foldToStreet3CBDone INT,
                         foldToStreet4CBChance INT,
                         foldToStreet4CBDone INT,
-                        
+
                         totalProfit INT,
                         rake INT,
-                        
+
                         street1CheckCallRaiseChance INT,
                         street1CheckCallRaiseDone INT,
                         street2CheckCallRaiseChance INT,
@@ -1651,7 +1651,7 @@ class Sql:
                         street3Raises INT,
                         street4Raises INT)
                         """
-                        
+
         ################################
         # Create CardsCache
         ################################
@@ -1699,7 +1699,7 @@ class Sql:
                         street3Seen INT,
                         street4Seen INT,
                         sawShowdown INT,
-                        
+
                         street1Aggr INT,
                         street2Aggr INT,
                         street3Aggr INT,
@@ -1715,7 +1715,7 @@ class Sql:
                         foldToOtherRaisedStreet2 INT,
                         foldToOtherRaisedStreet3 INT,
                         foldToOtherRaisedStreet4 INT,
-                        
+
                         raiseFirstInChance INT,
                         raisedFirstIn INT,
                         foldBbToStealChance INT,
@@ -1731,7 +1731,7 @@ class Sql:
                         street3CBDone INT,
                         street4CBChance INT,
                         street4CBDone INT,
-                        
+
                         foldToStreet1CBChance INT,
                         foldToStreet1CBDone INT,
                         foldToStreet2CBChance INT,
@@ -1740,10 +1740,10 @@ class Sql:
                         foldToStreet3CBDone INT,
                         foldToStreet4CBChance INT,
                         foldToStreet4CBDone INT,
-                        
+
                         totalProfit INT,
                         rake INT,
-                        
+
                         street1CheckCallRaiseChance INT,
                         street1CheckCallRaiseDone INT,
                         street2CheckCallRaiseChance INT,
@@ -1992,7 +1992,7 @@ class Sql:
                         street3Raises INT,
                         street4Raises INT)
                         """
-                        
+
         ################################
         # Create PositionsCache
         ################################
@@ -2043,7 +2043,7 @@ class Sql:
                         street3Seen INT,
                         street4Seen INT,
                         sawShowdown INT,
-                        
+
                         street1Aggr INT,
                         street2Aggr INT,
                         street3Aggr INT,
@@ -2059,7 +2059,7 @@ class Sql:
                         foldToOtherRaisedStreet2 INT,
                         foldToOtherRaisedStreet3 INT,
                         foldToOtherRaisedStreet4 INT,
-                        
+
                         raiseFirstInChance INT,
                         raisedFirstIn INT,
                         foldBbToStealChance INT,
@@ -2075,7 +2075,7 @@ class Sql:
                         street3CBDone INT,
                         street4CBChance INT,
                         street4CBDone INT,
-                        
+
                         foldToStreet1CBChance INT,
                         foldToStreet1CBDone INT,
                         foldToStreet2CBChance INT,
@@ -2084,10 +2084,10 @@ class Sql:
                         foldToStreet3CBDone INT,
                         foldToStreet4CBChance INT,
                         foldToStreet4CBDone INT,
-                        
+
                         totalProfit INT,
                         rake INT,
-                        
+
                         street1CheckCallRaiseChance INT,
                         street1CheckCallRaiseDone INT,
                         street2CheckCallRaiseChance INT,
@@ -2343,7 +2343,7 @@ class Sql:
                         street4Raises INT)
                         """
 
-                        
+
         ################################
         # Create SessionsCache
         ################################
@@ -2355,21 +2355,21 @@ class Sql:
                         sessionEnd DATETIME NOT NULL)
                         ENGINE=INNODB
                         """
-                        
+
         elif db_server == 'postgresql':
             self.query['createSessionsCacheTable'] = """CREATE TABLE SessionsCache (
                         id SERIAL, PRIMARY KEY (id),
                         sessionStart timestamp without time zone NOT NULL,
                         sessionEnd timestamp without time zone NOT NULL)
                         """
-                        
+
         elif db_server == 'sqlite':
             self.query['createSessionsCacheTable'] = """CREATE TABLE SessionsCache (
                         id INTEGER PRIMARY KEY,
                         sessionStart timestamp NOT NULL,
                         sessionEnd timestamp NOT NULL)
                         """
-                        
+
         ################################
         # Create GamesCache
         ################################
@@ -2392,7 +2392,7 @@ class Sql:
                         allInEV INT)
                         ENGINE=INNODB
                         """
-                        
+
         elif db_server == 'postgresql':
             self.query['createGamesCacheTable'] = """CREATE TABLE GamesCache (
                         id SERIAL, PRIMARY KEY (id),
@@ -2410,7 +2410,7 @@ class Sql:
                         nonShowdownWinnings INT,
                         allInEV INT)
                         """
-                        
+
         elif db_server == 'sqlite':
             self.query['createGamesCacheTable'] = """CREATE TABLE GamesCache (
                         id INTEGER PRIMARY KEY,
@@ -2463,13 +2463,13 @@ class Sql:
         self.query['addPositionsCacheCompundIndex'] = """CREATE UNIQUE INDEX PositionsCache_Compound_idx ON PositionsCache(type, base, category, currency, maxSeats, playerId, activeSeats, position)"""
 
         self.query['get_last_hand'] = "select max(id) from Hands"
-        
+
         self.query['get_last_date'] = "SELECT MAX(startTime) FROM Hands"
-        
+
         self.query['get_first_date'] = "SELECT MIN(startTime) FROM Hands"
 
         self.query['get_player_id'] = """
-                select Players.id AS player_id 
+                select Players.id AS player_id
                 from Players, Sites
                 where Players.name = %s
                 and Sites.name = %s
@@ -2623,7 +2623,7 @@ class Sql:
                 AND   hc.styleKey > %s
                       /* styleKey is currently 'd' (for date) followed by a yyyymmdd
                          date key. Set it to 0000000 or similar to get all records  */
-                /* also check activeseats here even if only 3 groups eg 2-3/4-6/7+ 
+                /* also check activeseats here even if only 3 groups eg 2-3/4-6/7+
                    e.g. could use a multiplier:
                    AND   h.seats > X / 1.25  and  hp.seats < X * 1.25
                    where X is the number of active players at the current table (and
@@ -2778,11 +2778,11 @@ class Sql:
                 ORDER BY hc.PlayerId, p.name
             """
                 #  NOTES on above cursor:
-                #  - Do NOT include %s inside query in a comment - the db api thinks 
+                #  - Do NOT include %s inside query in a comment - the db api thinks
                 #  they are actual arguments.
                 #  - styleKey is currently 'd' (for date) followed by a yyyymmdd
                 #  date key. Set it to 0000000 or similar to get all records
-                #  Could also check activeseats here even if only 3 groups eg 2-3/4-6/7+ 
+                #  Could also check activeseats here even if only 3 groups eg 2-3/4-6/7+
                 #  e.g. could use a multiplier:
                 #  AND   h.seats > %s / 1.25  and  hp.seats < %s * 1.25
                 #  where %s is the number of active players at the current table (and
@@ -3177,7 +3177,7 @@ class Sql:
                        there's a gap over X minutes between hands (ie. when we get back to start of
                        the session */
                 """
-     
+
         self.query['get_players_from_hand'] = """
                 SELECT HandsPlayers.playerId, seatNo, name
                 FROM  HandsPlayers INNER JOIN Players ON (HandsPlayers.playerId = Players.id)
@@ -3326,13 +3326,13 @@ class Sql:
 
         # Used in *Filters:
         #self.query['getLimits'] = already defined further up
-        self.query['getLimits2'] = """SELECT DISTINCT type, limitType, bigBlind 
+        self.query['getLimits2'] = """SELECT DISTINCT type, limitType, bigBlind
                                       from Gametypes
                                       ORDER by type, limitType DESC, bigBlind DESC"""
         self.query['getLimits3'] = """select DISTINCT type
                                            , gt.limitType
                                            , case type
-                                                 when 'ring' then bigBlind 
+                                                 when 'ring' then bigBlind
 -                                                else buyin
 -                                            end as bb_or_buyin
                                       from Gametypes gt
@@ -3344,11 +3344,11 @@ class Sql:
                                       from Gametypes gt
                                       WHERE type = 'ring'
                                       order by type, limitType DESC, bb_or_buyin DESC"""
-                                      
+
         self.query['getPositions'] = """select distinct position
                                       from HandsPlayers gt
                                       order by position"""
-                                      
+
         #FIXME: Some stats not added to DetailedStats (miss raise to steal)
         if db_server == 'mysql':
             self.query['playerDetailedStats'] = """
@@ -3382,7 +3382,7 @@ class Sql:
                              end                                                                    AS pff4
 
                             ,case when sum(cast(hp.raiseFirstInChance as <signed>integer)) = 0 then -999
-                                  else 100.0 * sum(cast(hp.raisedFirstIn as <signed>integer)) / 
+                                  else 100.0 * sum(cast(hp.raisedFirstIn as <signed>integer)) /
                                        sum(cast(hp.raiseFirstInChance as <signed>integer))
                              end                                                                    AS rfi
                             ,case when sum(case hp.position
@@ -3392,14 +3392,14 @@ class Sql:
                                            else 0
                                            end
                                           ) = 0 then -999
-                                  else 100.0 * 
+                                  else 100.0 *
                                        sum(case hp.position
                                            when 'S' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '0' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '1' then cast(hp.raisedFirstIn as <signed>integer)
                                            else 0
                                            end
-                                          ) / 
+                                          ) /
                                        sum(case hp.position
                                            when 'S' then cast(hp.raiseFirstInChance as <signed>integer)
                                            when '0' then cast(hp.raiseFirstInChance as <signed>integer)
@@ -3409,9 +3409,9 @@ class Sql:
                                           )
                              end                                                                    AS steals
                             ,case when sum(cast(hp.success_Steal as <signed>integer)) = 0 then -999
-                                  else 100.0 * 
+                                  else 100.0 *
                                        sum(cast(hp.success_Steal as <signed>integer))
-                                           / 
+                                           /
                                        sum(case hp.position
                                            when 'S' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '0' then cast(hp.raisedFirstIn as <signed>integer)
@@ -3448,13 +3448,13 @@ class Sql:
                                  else (sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer)))
                                      /(0.0+sum(cast(hp.street1Calls as <signed>integer))+ sum(cast(hp.street2Calls as <signed>integer))+ sum(cast(hp.street3Calls as <signed>integer))+ sum(cast(hp.street4Calls as <signed>integer)))
                              end                                                                    AS aggfac
-                            ,100.0*(sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer))) 
+                            ,100.0*(sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer)))
                                        / ((sum(cast(hp.foldToOtherRaisedStreet1 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet2 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet3 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet4 as <signed>integer))) +
                                        (sum(cast(hp.street1Calls as <signed>integer))+ sum(cast(hp.street2Calls as <signed>integer))+ sum(cast(hp.street3Calls as <signed>integer))+ sum(cast(hp.street4Calls as <signed>integer))) +
                                        (sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer))) )
                                                                                                     AS aggfrq
-                            ,100.0*(sum(cast(hp.street1CBDone as <signed>integer)) + sum(cast(hp.street2CBDone as <signed>integer)) + sum(cast(hp.street3CBDone as <signed>integer)) + sum(cast(hp.street4CBDone as <signed>integer))) 
-                                       / (sum(cast(hp.street1CBChance as <signed>integer))+ sum(cast(hp.street2CBChance as <signed>integer))+ sum(cast(hp.street3CBChance as <signed>integer))+ sum(cast(hp.street4CBChance as <signed>integer))) 
+                            ,100.0*(sum(cast(hp.street1CBDone as <signed>integer)) + sum(cast(hp.street2CBDone as <signed>integer)) + sum(cast(hp.street3CBDone as <signed>integer)) + sum(cast(hp.street4CBDone as <signed>integer)))
+                                       / (sum(cast(hp.street1CBChance as <signed>integer))+ sum(cast(hp.street2CBChance as <signed>integer))+ sum(cast(hp.street3CBChance as <signed>integer))+ sum(cast(hp.street4CBChance as <signed>integer)))
                                                                                                     AS conbet
                             ,sum(hp.totalProfit)/100.0                                              AS net
                             ,sum(hp.rake)/100.0                                                     AS rake
@@ -3533,7 +3533,7 @@ class Sql:
                                   else 100.0*sum(cast(hp.street0_FoldTo4Bdone as <signed>integer))/sum(cast(hp.street0_FoldTo4Bchance as <signed>integer))
                              end                                                                    AS pff4
                             ,case when sum(cast(hp.raiseFirstInChance as <signed>integer)) = 0 then -999
-                                  else 100.0 * sum(cast(hp.raisedFirstIn as <signed>integer)) / 
+                                  else 100.0 * sum(cast(hp.raisedFirstIn as <signed>integer)) /
                                        sum(cast(hp.raiseFirstInChance as <signed>integer))
                              end                                                                    AS rfi
                             ,case when sum(case hp.position
@@ -3543,14 +3543,14 @@ class Sql:
                                            else 0
                                            end
                                           ) = 0 then -999
-                                  else 100.0 * 
+                                  else 100.0 *
                                        sum(case hp.position
                                            when 'S' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '0' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '1' then cast(hp.raisedFirstIn as <signed>integer)
                                            else 0
                                            end
-                                          ) / 
+                                          ) /
                                        sum(case hp.position
                                            when 'S' then cast(hp.raiseFirstInChance as <signed>integer)
                                            when '0' then cast(hp.raiseFirstInChance as <signed>integer)
@@ -3560,9 +3560,9 @@ class Sql:
                                           )
                              end                                                                    AS steals
                             ,case when sum(cast(hp.success_Steal as <signed>integer)) = 0 then -999
-                                  else 100.0 * 
+                                  else 100.0 *
                                        sum(cast(hp.success_Steal as <signed>integer))
-                                           / 
+                                           /
                                        sum(case hp.position
                                            when 'S' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '0' then cast(hp.raisedFirstIn as <signed>integer)
@@ -3605,7 +3605,7 @@ class Sql:
                                 sum(cast(hp.street1Aggr as <signed>integer))+ sum(cast(hp.street2Aggr as <signed>integer))+ sum(cast(hp.street3Aggr as <signed>integer))+ sum(cast(hp.street4Aggr as <signed>integer))
                                 = 0 then -999
                             else
-                            100.0*(sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer))) 
+                            100.0*(sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer)))
                                        / ((sum(cast(hp.foldToOtherRaisedStreet1 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet2 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet3 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet4 as <signed>integer))) +
                                        (sum(cast(hp.street1Calls as <signed>integer))+ sum(cast(hp.street2Calls as <signed>integer))+ sum(cast(hp.street3Calls as <signed>integer))+ sum(cast(hp.street4Calls as <signed>integer))) +
                                        (sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer))) )
@@ -3616,8 +3616,8 @@ class Sql:
                                 sum(cast(hp.street3CBChance as <signed>integer))+
                                 sum(cast(hp.street4CBChance as <signed>integer)) = 0 then -999
                             else
-                             100.0*(sum(cast(hp.street1CBDone as <signed>integer)) + sum(cast(hp.street2CBDone as <signed>integer)) + sum(cast(hp.street3CBDone as <signed>integer)) + sum(cast(hp.street4CBDone as <signed>integer))) 
-                                       / (sum(cast(hp.street1CBChance as <signed>integer))+ sum(cast(hp.street2CBChance as <signed>integer))+ sum(cast(hp.street3CBChance as <signed>integer))+ sum(cast(hp.street4CBChance as <signed>integer))) 
+                             100.0*(sum(cast(hp.street1CBDone as <signed>integer)) + sum(cast(hp.street2CBDone as <signed>integer)) + sum(cast(hp.street3CBDone as <signed>integer)) + sum(cast(hp.street4CBDone as <signed>integer)))
+                                       / (sum(cast(hp.street1CBChance as <signed>integer))+ sum(cast(hp.street2CBChance as <signed>integer))+ sum(cast(hp.street3CBChance as <signed>integer))+ sum(cast(hp.street4CBChance as <signed>integer)))
                             end                                                                     AS conbet
                             ,sum(hp.totalProfit)/100.0                                              AS net
                             ,sum(hp.rake)/100.0                                                     AS rake
@@ -3697,7 +3697,7 @@ class Sql:
                                   else 100.0*sum(cast(hp.street0_FoldTo4Bdone as <signed>integer))/sum(cast(hp.street0_FoldTo4Bchance as <signed>integer))
                              end                                                                    AS pff4
                             ,case when sum(cast(hp.raiseFirstInChance as <signed>integer)) = 0 then -999
-                                  else 100.0 * sum(cast(hp.raisedFirstIn as <signed>integer)) / 
+                                  else 100.0 * sum(cast(hp.raisedFirstIn as <signed>integer)) /
                                        sum(cast(hp.raiseFirstInChance as <signed>integer))
                              end                                                                    AS rfi
                             ,case when sum(case hp.position
@@ -3707,14 +3707,14 @@ class Sql:
                                            else 0
                                            end
                                           ) = 0 then -999
-                                  else 100.0 * 
+                                  else 100.0 *
                                        sum(case hp.position
                                            when 'S' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '0' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '1' then cast(hp.raisedFirstIn as <signed>integer)
                                            else 0
                                            end
-                                          ) / 
+                                          ) /
                                        sum(case hp.position
                                            when 'S' then cast(hp.raiseFirstInChance as <signed>integer)
                                            when '0' then cast(hp.raiseFirstInChance as <signed>integer)
@@ -3724,9 +3724,9 @@ class Sql:
                                           )
                              end                                                                    AS steals
                             ,case when sum(cast(hp.success_Steal as <signed>integer)) = 0 then -999
-                                  else 100.0 * 
+                                  else 100.0 *
                                        sum(cast(hp.success_Steal as <signed>integer))
-                                           / 
+                                           /
                                        sum(case hp.position
                                            when 'S' then cast(hp.raisedFirstIn as <signed>integer)
                                            when '0' then cast(hp.raisedFirstIn as <signed>integer)
@@ -3763,13 +3763,13 @@ class Sql:
                                  else (sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer)))
                                      /(0.0+sum(cast(hp.street1Calls as <signed>integer))+ sum(cast(hp.street2Calls as <signed>integer))+ sum(cast(hp.street3Calls as <signed>integer))+ sum(cast(hp.street4Calls as <signed>integer)))
                              end                                                                    AS aggfac
-                            ,100.0*(sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer))) 
+                            ,100.0*(sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer)))
                                        / ((sum(cast(hp.foldToOtherRaisedStreet1 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet2 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet3 as <signed>integer))+ sum(cast(hp.foldToOtherRaisedStreet4 as <signed>integer))) +
                                        (sum(cast(hp.street1Calls as <signed>integer))+ sum(cast(hp.street2Calls as <signed>integer))+ sum(cast(hp.street3Calls as <signed>integer))+ sum(cast(hp.street4Calls as <signed>integer))) +
                                        (sum(cast(hp.street1Aggr as <signed>integer)) + sum(cast(hp.street2Aggr as <signed>integer)) + sum(cast(hp.street3Aggr as <signed>integer)) + sum(cast(hp.street4Aggr as <signed>integer))) )
                                                                                                     AS aggfrq
-                            ,100.0*(sum(cast(hp.street1CBDone as <signed>integer)) + sum(cast(hp.street2CBDone as <signed>integer)) + sum(cast(hp.street3CBDone as <signed>integer)) + sum(cast(hp.street4CBDone as <signed>integer))) 
-                                       / (sum(cast(hp.street1CBChance as <signed>integer))+ sum(cast(hp.street2CBChance as <signed>integer))+ sum(cast(hp.street3CBChance as <signed>integer))+ sum(cast(hp.street4CBChance as <signed>integer))) 
+                            ,100.0*(sum(cast(hp.street1CBDone as <signed>integer)) + sum(cast(hp.street2CBDone as <signed>integer)) + sum(cast(hp.street3CBDone as <signed>integer)) + sum(cast(hp.street4CBDone as <signed>integer)))
+                                       / (sum(cast(hp.street1CBChance as <signed>integer))+ sum(cast(hp.street2CBChance as <signed>integer))+ sum(cast(hp.street3CBChance as <signed>integer))+ sum(cast(hp.street4CBChance as <signed>integer)))
                                                                                                     AS conbet
                             ,sum(hp.totalProfit)/100.0                                              AS net
                             ,sum(hp.rake)/100.0                                                     AS rake
@@ -3993,7 +3993,7 @@ class Sql:
                            ,sum(HDs)                                                        AS n
                            ,format(100.0*sum(street0VPI)/sum(HDs),1)                        AS vpip
                            ,format(100.0*sum(street0Aggr)/sum(HDs),1)                       AS pfr
-                           
+
                            ,case when sum(street0CalledRaiseChance) = 0 then '0'
                                  else format(100.0*sum(street0CalledRaiseDone)/sum(street0CalledRaiseChance),1)
                             end                                                             AS car0
@@ -4799,7 +4799,7 @@ class Sql:
         # Tourney Results query
         ####################################
         self.query['tourneyResults'] = """
-            SELECT tp.tourneyId, (coalesce(tp.winnings,0) - coalesce(tt.buyIn,0) - coalesce(tt.fee,0)) as profit, tp.koCount, tp.rebuyCount, tp.addOnCount, tt.buyIn, tt.fee, t.siteTourneyNo
+            SELECT tp.tourneyId, (coalesce(tp.winnings,0) - coalesce(tt.buyIn,0) - coalesce(tt.fee,0)) as profit, tp.koCount, tp.rebuyCount, tp.addOnCount, tt.buyIn, tt.fee, t.siteTourneyNo, t.startTime
             FROM TourneysPlayers tp
             INNER JOIN Players pl      ON  (pl.id = tp.playerId)
             INNER JOIN Tourneys t         ON  (t.id  = tp.tourneyId)
@@ -4944,11 +4944,11 @@ class Sql:
         ####################################
         # Queries to rebuild/modify hudcache
         ####################################
-      
+
         self.query['clearHudCache'] = """DELETE FROM HudCache"""
         self.query['clearHudCacheTourneyType'] = """DELETE FROM HudCache WHERE tourneyTypeId = %s"""
-        
-       
+
+
         if db_server == 'mysql':
             self.query['rebuildHudCache'] = """
                 INSERT INTO HudCache
@@ -5780,11 +5780,11 @@ class Sql:
             street2Calls=street2Calls+%s,
             street3Calls=street3Calls+%s,
             street4Calls=street4Calls+%s,
-            street0Bets=street0Bets+%s, 
+            street0Bets=street0Bets+%s,
             street1Bets=street1Bets+%s,
-            street2Bets=street2Bets+%s, 
+            street2Bets=street2Bets+%s,
             street3Bets=street3Bets+%s,
-            street4Bets=street4Bets+%s, 
+            street4Bets=street4Bets+%s,
             street0Raises=street0Raises+%s,
             street1Raises=street1Raises+%s,
             street2Raises=street2Raises+%s,
@@ -5794,19 +5794,19 @@ class Sql:
             AND   playerId=%s
             AND   activeSeats=%s
             AND   position=%s
-            AND   (case when tourneyTypeId is NULL then 1 else 
+            AND   (case when tourneyTypeId is NULL then 1 else
                    (case when tourneyTypeId+0=%s then 1 else 0 end) end)=1
             AND   styleKey=%s"""
-            
+
         self.query['get_hero_hudcache_start'] = """select min(hc.styleKey)
                                                    from HudCache hc
                                                    where hc.playerId in <playerid_list>
                                                    and   hc.styleKey like 'd%'"""
-                                                   
+
         ####################################
         # Queries to insert/update cardscache
         ####################################
-                                                   
+
         self.query['insert_cardscache'] = """
             insert into CardsCache (
                 type,
@@ -6010,11 +6010,11 @@ class Sql:
             street2Calls=street2Calls+%s,
             street3Calls=street3Calls+%s,
             street4Calls=street4Calls+%s,
-            street0Bets=street0Bets+%s, 
+            street0Bets=street0Bets+%s,
             street1Bets=street1Bets+%s,
-            street2Bets=street2Bets+%s, 
+            street2Bets=street2Bets+%s,
             street3Bets=street3Bets+%s,
-            street4Bets=street4Bets+%s, 
+            street4Bets=street4Bets+%s,
             street0Raises=street0Raises+%s,
             street1Raises=street1Raises+%s,
             street2Raises=street2Raises+%s,
@@ -6025,11 +6025,11 @@ class Sql:
             AND   currency=%s
             AND   playerId=%s
             AND   startCards=%s"""
-                   
+
         ####################################
         # Queries to insert/update positionscache
         ####################################
-                   
+
         self.query['insert_positionscache'] = """
             insert into PositionsCache (
                 type,
@@ -6236,11 +6236,11 @@ class Sql:
             street2Calls=street2Calls+%s,
             street3Calls=street3Calls+%s,
             street4Calls=street4Calls+%s,
-            street0Bets=street0Bets+%s, 
+            street0Bets=street0Bets+%s,
             street1Bets=street1Bets+%s,
-            street2Bets=street2Bets+%s, 
+            street2Bets=street2Bets+%s,
             street3Bets=street3Bets+%s,
-            street4Bets=street4Bets+%s, 
+            street4Bets=street4Bets+%s,
             street0Raises=street0Raises+%s,
             street1Raises=street1Raises+%s,
             street2Raises=street2Raises+%s,
@@ -6254,11 +6254,11 @@ class Sql:
             AND   playerId=%s
             AND   activeSeats=%s
             AND   position=%s"""
-            
+
         ####################################
         # Queries to rebuild/modify sessionscache
         ####################################
-        
+
         self.query['clear_GC_H']  = """UPDATE Hands SET gameId = NULL"""
         self.query['clear_SC_H']  = """UPDATE Hands SET sessionId = NULL"""
         self.query['clear_SC_T']  = """UPDATE Tourneys SET sessionId = NULL"""
@@ -6267,7 +6267,7 @@ class Sql:
         self.query['clearSessionsCache'] = """DELETE FROM SessionsCache WHERE 1"""
         self.query['clearGamesCache']    = """DELETE FROM GamesCache WHERE 1"""
         self.query['update_RSC_H']        = """UPDATE Hands SET sessionId = %s, gameId = %s WHERE id = %s"""
-        
+
         self.query['rebuildSessionsCache'] = """
                     SELECT Hands.id as id,
                     Hands.startTime as startTime,
@@ -6290,11 +6290,11 @@ class Sql:
                     AND Gametypes.type = %s
                     ORDER BY Hands.startTime ASC
                     LIMIT %s OFFSET %s"""
-                    
+
         ####################################
         # select
         ####################################
-        
+
         self.query['select_SC'] = """
                     SELECT id,
                     sessionStart,
@@ -6302,7 +6302,7 @@ class Sql:
                     FROM SessionsCache
                     WHERE sessionEnd>=%s
                     AND sessionStart<=%s"""
-                    
+
         self.query['select_GC'] = """
                     SELECT id,
                     sessionId,
@@ -6321,17 +6321,17 @@ class Sql:
                     AND date=%s
                     AND gametypeId=%s
                     AND playerId=%s"""
-                    
+
         ####################################
         # insert
         ####################################
-                            
+
         self.query['insert_SC'] = """
                     insert into SessionsCache (
                     sessionStart,
                     sessionEnd)
                     values (%s, %s)"""
-                            
+
         self.query['insert_GC'] = """
                     insert into GamesCache (
                     sessionId,
@@ -6349,17 +6349,17 @@ class Sql:
                     allInEV)
                     values (%s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s, %s)"""
-                    
+
         ####################################
         # update
         ####################################
-                    
+
         self.query['update_SC'] = """
-                    UPDATE SessionsCache SET 
+                    UPDATE SessionsCache SET
                     sessionStart=%s,
                     sessionEnd=%s
                     WHERE id=%s"""
-                    
+
         self.query['update_GC'] = """
                     UPDATE GamesCache SET
                     gameStart=%s,
@@ -6372,64 +6372,64 @@ class Sql:
                     nonShowdownWinnings=nonShowdownWinnings+%s,
                     allInEV=allInEV+%s
                     WHERE id=%s"""
-                    
+
         ####################################
         # delete
         ####################################
-                    
+
         self.query['delete_SC'] = """
                     DELETE FROM SessionsCache
                     WHERE id=%s"""
-                    
+
         self.query['delete_GC'] = """
                     DELETE FROM GamesCache
                     WHERE id=%s"""
-                    
+
         ####################################
         # update GamesCache, Hands, Tourneys
         ####################################
-                    
+
         self.query['update_SC_GC'] = """
                     UPDATE GamesCache SET
                     sessionId=%s
                     WHERE sessionId=%s"""
-                    
+
         self.query['update_SC_T'] = """
                     UPDATE Tourneys SET
                     sessionId=%s
                     WHERE sessionId=%s"""
-                            
+
         self.query['update_SC_H'] = """
                     UPDATE Hands SET
                     sessionId=%s
                     WHERE sessionId=%s"""
-                            
+
         self.query['update_GC_H'] = """
                     UPDATE Hands SET
                     gameId=%s
                     WHERE gameId=%s"""
-                    
+
         ####################################
         # update Tourneys w. sessionIds, hands, start/end
         ####################################
-                    
+
         self.query['updateTourneysSessions'] = """
                     UPDATE Tourneys SET
                     sessionId=%s
                     WHERE id=%s"""
-                    
+
         self.query['selectTourneysPlayersStartEnd'] = """
                     SELECT startTime, endTime
                     FROM TourneysPlayers
                     WHERE id=%s"""
-        
+
         self.query['updateTourneysPlayersStart'] = """
                     UPDATE TourneysPlayers SET
                     startTime=%s,
                     played=played+%s,
                     hands=hands+%s
                     WHERE id=%s"""
-        
+
         self.query['updateTourneysPlayersEnd'] = """
                     UPDATE TourneysPlayers SET
                     endTime=%s,
@@ -6437,7 +6437,7 @@ class Sql:
                     hands=hands+%s
                     WHERE id=%s
         """
-        
+
         self.query['updateTourneysPlayersStartEnd'] = """
                     UPDATE TourneysPlayers SET
                     startTime=%s,
@@ -6446,21 +6446,21 @@ class Sql:
                     hands=hands+%s
                     WHERE id=%s
         """
-        
+
         self.query['updateTourneysPlayers'] = """
                     UPDATE TourneysPlayers SET
                     played=played+%s,
                     hands=hands+%s
                     WHERE id=%s
         """
-        
+
         ####################################
         # Database management queries
         ####################################
 
         if db_server == 'mysql':
             self.query['analyze'] = """
-            analyze table Actions, Autorates, Backings, Boards, Files, Gametypes, Hands, HandsActions, HandsPlayers, 
+            analyze table Actions, Autorates, Backings, Boards, Files, Gametypes, Hands, HandsActions, HandsPlayers,
                           HandsStove, HudCache, Players, RawHands, RawTourneys, SessionsCache, Settings, Sites,
                           Tourneys, TourneysPlayers, TourneyTypes
             """
@@ -6468,11 +6468,11 @@ class Sql:
             self.query['analyze'] = "analyze"
         elif db_server == 'sqlite':
             self.query['analyze'] = "analyze"
-            
+
 
         if db_server == 'mysql':
             self.query['vacuum'] = """
-            optimize table Actions, Autorates, Backings, Boards, Files, Gametypes, Hands, HandsActions, HandsPlayers, 
+            optimize table Actions, Autorates, Backings, Boards, Files, Gametypes, Hands, HandsActions, HandsPlayers,
                            HandsStove, HudCache, Players, RawHands, RawTourneys, SessionsCache, Settings, Sites,
                            Tourneys, TourneysPlayers, TourneyTypes
             """
@@ -6480,15 +6480,15 @@ class Sql:
             self.query['vacuum'] = """ vacuum """
         elif db_server == 'sqlite':
             self.query['vacuum'] = """ vacuum """
-            
+
         if db_server == 'mysql':
             self.query['switchLockOn'] = """
-                        UPDATE InsertLock k1, 
+                        UPDATE InsertLock k1,
                         (SELECT count(locked) as locks FROM InsertLock WHERE locked=True) as k2 SET
                         k1.locked=%s
                         WHERE k1.id=%s
                         AND k2.locks = 0"""
-                        
+
         if db_server == 'mysql':
             self.query['switchLockOff'] = """
                         UPDATE InsertLock SET
@@ -6537,10 +6537,10 @@ class Sql:
                                               ,hiLo, mix, smallBlind, bigBlind, smallBet, bigBet, maxSeats, ante)
                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
 
-        self.query['isAlreadyInDB'] = """SELECT id FROM Hands 
+        self.query['isAlreadyInDB'] = """SELECT id FROM Hands
                                          WHERE gametypeId=%s AND siteHandNo=%s
         """
-        
+
         self.query['getTourneyTypeIdByTourneyNo'] = """SELECT tt.id,
                                                               tt.siteId,
                                                               tt.currency,
@@ -6559,11 +6559,11 @@ class Sql:
                                                               tt.speed,
                                                               tt.shootout,
                                                               tt.matrix
-                                                    FROM TourneyTypes tt 
-                                                    INNER JOIN Tourneys t ON (t.tourneyTypeId = tt.id) 
+                                                    FROM TourneyTypes tt
+                                                    INNER JOIN Tourneys t ON (t.tourneyTypeId = tt.id)
                                                     WHERE t.siteTourneyNo=%s AND tt.siteId=%s
         """
-        
+
         self.query['getTourneyTypeId'] = """SELECT  id
                                             FROM TourneyTypes
                                             WHERE siteId=%s
@@ -6590,25 +6590,25 @@ class Sql:
                                                    rebuy, rebuyCost, addOn, addOnCost, speed, shootout, matrix)
                                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        
+
         self.query['updateTourneyTypeId'] = """UPDATE Tourneys
                                             SET tourneyTypeId = %s
                                             WHERE siteTourneyNo=%s
         """
-        
-        self.query['selectTourneyWithTypeId'] = """SELECT id 
+
+        self.query['selectTourneyWithTypeId'] = """SELECT id
                                                 FROM Tourneys
                                                 WHERE tourneyTypeId = %s
         """
-        
+
         self.query['deleteTourneyTypeId'] = """DELETE FROM TourneyTypes WHERE id = %s
         """
-        
+
         self.query['updateTourneyTypeId'] = """UPDATE Tourneys
                                             SET tourneyTypeId = %s
                                             WHERE siteTourneyNo=%s
         """
-        
+
         self.query['fetchNewTourneyTypeIds'] = """SELECT TT.id
                                             FROM TourneyTypes TT
                                             LEFT OUTER JOIN HudCache HC ON (TT.id = HC.tourneyTypeId)
@@ -6643,14 +6643,14 @@ class Sql:
                                         INNER JOIN Players p ON (p.id = tp.playerId)
                                         WHERE s.name=%s AND t.siteTourneyNo=%s AND p.name=%s
         """
-        
+
         self.query['insertTourney'] = """INSERT INTO Tourneys
                                             (tourneyTypeId, sessionId, siteTourneyNo, entries, prizepool,
                                              startTime, endTime, tourneyName, matrixIdProcessed,
                                              totalRebuyCount, totalAddOnCount)
                                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        
+
         self.query['updateTourney'] = """UPDATE Tourneys
                                              SET entries = %s,
                                                  prizepool = %s,
@@ -6664,15 +6664,15 @@ class Sql:
                                                  commentTs = %s
                                         WHERE id=%s
         """
-        
+
         self.query['getTourneysPlayersByIds'] = """SELECT *
                                                 FROM TourneysPlayers
-                                                WHERE tourneyId=%s AND playerId+0=%s            
+                                                WHERE tourneyId=%s AND playerId+0=%s
         """
-        
+
         self.query['getTourneysPlayersByTourney'] = """SELECT playerId
                                                        FROM TourneysPlayers
-                                                       WHERE tourneyId=%s            
+                                                       WHERE tourneyId=%s
         """
 
         self.query['updateTourneysPlayer'] = """UPDATE TourneysPlayers
@@ -6704,16 +6704,16 @@ class Sql:
         """
 
         self.query['selectHandsPlayersWithWrongTTypeId'] = """SELECT id
-                                                              FROM HandsPlayers 
+                                                              FROM HandsPlayers
                                                               WHERE tourneyTypeId <> %s AND (TourneysPlayersId+0=%s)
         """
 
-#            self.query['updateHandsPlayersForTTypeId2'] = """UPDATE HandsPlayers 
+#            self.query['updateHandsPlayersForTTypeId2'] = """UPDATE HandsPlayers
 #                                                            SET tourneyTypeId= %s
 #                                                            WHERE (TourneysPlayersId+0=%s)
 #            """
 
-        self.query['updateHandsPlayersForTTypeId'] = """UPDATE HandsPlayers 
+        self.query['updateHandsPlayersForTTypeId'] = """UPDATE HandsPlayers
                                                          SET tourneyTypeId= %s
                                                          WHERE (id=%s)
         """
@@ -6947,7 +6947,7 @@ class Sql:
                     %s, %s, %s, %s, %s,
                     %s, %s
                )"""
-                
+
         self.query['store_boards'] = """insert into Boards (
                         handId,
                         boardId,
@@ -6965,7 +6965,7 @@ class Sql:
         ################################
         # queries for Files Table
         ################################
-        
+
         self.query['store_file'] = """  insert into Files (
                         file,
                         site,
@@ -6983,7 +6983,7 @@ class Sql:
                     %s, %s, %s, %s, %s,
                     %s
                 )"""
-        
+
         self.query['update_file'] = """
                     UPDATE Files SET
                     type=%s,
@@ -6997,20 +6997,20 @@ class Sql:
                     ttime100=ttime100+%s,
                     finished=%s
                     WHERE id=%s"""
-        
+
         ################################
         # Counts for DB stats window
         ################################
         self.query['getHandCount'] = "SELECT COUNT(*) FROM Hands"
         self.query['getTourneyCount'] = "SELECT COUNT(*) FROM Tourneys"
         self.query['getTourneyTypeCount'] = "SELECT COUNT(*) FROM TourneyTypes"
-        
+
         ################################
         # queries for dumpDatabase
         ################################
         for table in (u'Autorates', u'Backings', u'Gametypes', u'Hands', u'HandsActions', u'HandsPlayers', u'HudCache', u'Players', u'RawHands', u'RawTourneys', u'Settings', u'Sites', u'TourneyTypes', u'Tourneys', u'TourneysPlayers'):
             self.query['get'+table] = u"SELECT * FROM "+table
-        
+
         ################################
         # placeholders and substitution stuff
         ################################

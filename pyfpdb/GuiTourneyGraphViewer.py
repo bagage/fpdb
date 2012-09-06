@@ -39,6 +39,8 @@ try:
     if calluse:
         matplotlib.use('GTKCairo')
     from matplotlib.figure import Figure
+    from matplotlib.dates import YearLocator, MonthLocator, DateFormatter
+    import datetime
     from matplotlib.backends.backend_gtk import FigureCanvasGTK as FigureCanvas
     from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
     from matplotlib.font_manager import FontProperties
@@ -72,6 +74,7 @@ class GuiTourneyGraphViewer (threading.Thread):
                             "Seats"     : False,
                             "SeatSep"   : False,
                             "Dates"     : True,
+                            "GraphOpsTour" 	: True,
                             "Groups"    : False,
                             "Button1"   : True,
                             "Button2"   : True
@@ -160,7 +163,7 @@ class GuiTourneyGraphViewer (threading.Thread):
 
         #Get graph data from DB
         starttime = time()
-        green = self.getData(playerids, sitenos)
+        (green, datesXAbs) = self.getData(playerids, sitenos)
         print _("Graph generated in: %s") %(time() - starttime)
 
 
@@ -202,11 +205,24 @@ class GuiTourneyGraphViewer (threading.Thread):
             self.ax.set_title(_("Tournament Results"))
 
             #Draw plot
-            self.ax.plot(green, color='green', label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
+            #~top corner legend
+            print datesXAbs[1]
+            for i in range(1, len(datesXAbs)):
+                #~2012-08-07 21:58:34
+                 datesXAbs[i] = date2num(datetime.datetime.strptime(datesXAbs[i], "%Y-%m-%d %H:%M:%S"))
+
+            #~dates = matplotlib.dates.date2num(datesXAbs)
+
+            self.ax.plot(datesXAbs, green, color='green', label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
+
+            self.ax.xaxis.set_major_locator(DayLocator())
+            self.ax.xaxis.set_major_formatter(DateFormatter('%d/%m'))
+            self.ax.xaxis.set_minor_locator(DayLocator())
+            self.ax.autoscale_view()
 
             legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
             legend.draggable(True)
-            
+
             self.graphBox.add(self.canvas)
             self.canvas.show()
             self.canvas.draw()
@@ -215,9 +231,14 @@ class GuiTourneyGraphViewer (threading.Thread):
     #end of def showClicked
 
     def getData(self, names, sites):
+        print "DEBUG: args are :"
+        print names
+        print sites
+
         tmp = self.sql.query['tourneyResults']
-        print "DEBUG: getData"
+        print "DEBUG: getData. :"
         start_date, end_date = self.filters.getDates()
+            #~tp.tourneyId, profit, tp.koCount, tp.rebuyCount, tp.addOnCount, tt.buyIn, tt.fee, t.siteTourneyNo, t.startTime
 
         #Buggered if I can find a way to do this 'nicely' take a list of integers and longs
         # and turn it into a tuple readale by sql.
@@ -243,12 +264,14 @@ class GuiTourneyGraphViewer (threading.Thread):
             return None
 
         green = map(lambda x:float(x[1]), winnings)
+
+        datesXAbs = map(lambda x:x[8], winnings)
         #blue  = map(lambda x: float(x[1]) if x[2] == True  else 0.0, winnings)
         #red   = map(lambda x: float(x[1]) if x[2] == False else 0.0, winnings)
         greenline = cumsum(green)
         #blueline  = cumsum(blue)
         #redline   = cumsum(red)
-        return (greenline/100)
+        return (greenline/100, datesXAbs)
 
     def exportGraph (self, widget, data):
         if self.fig is None:
@@ -259,24 +282,24 @@ class GuiTourneyGraphViewer (threading.Thread):
                                             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OK,gtk.RESPONSE_OK))
         dia_chooser.set_destroy_with_parent(True)
         dia_chooser.set_transient_for(self.parent)
-        try: 
+        try:
             dia_chooser.set_filename(self.exportFile) # use previously chosen export path as default
         except:
             pass
 
         response = dia_chooser.run()
-        
+
         if response <> gtk.RESPONSE_OK:
             print _('Closed, no graph exported')
             dia_chooser.destroy()
             return
-            
+
         # generate a unique filename for export
         now = datetime.now()
         now_formatted = now.strftime("%Y%m%d%H%M%S")
         self.exportFile = dia_chooser.get_filename() + "/fpdb" + now_formatted + ".png"
         dia_chooser.destroy()
-        
+
         #print "DEBUG: self.exportFile = %s" %(self.exportFile)
         self.fig.savefig(self.exportFile, format="png")
 
@@ -286,8 +309,8 @@ class GuiTourneyGraphViewer (threading.Thread):
                                 type=gtk.MESSAGE_INFO,
                                 buttons=gtk.BUTTONS_OK,
                                 message_format=_("Graph created"))
-        diainfo.format_secondary_text(self.exportFile)          
+        diainfo.format_secondary_text(self.exportFile)
         diainfo.run()
         diainfo.destroy()
-        
+
     #end of def exportGraph
