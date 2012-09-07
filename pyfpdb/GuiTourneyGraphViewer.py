@@ -202,7 +202,11 @@ class GuiTourneyGraphViewer (threading.Thread):
             #TODO: Do something useful like alert user
         else:
             self.ax.set_title(_("Tournament Results"))
+            useDates = True
 
+            #nothing to draw
+            if (len(green) == 0):
+                return
             #Get the dates of tourneys
             #if first tourney has no date, get the most ancient date and assume it's his one
             if datesXAbs[0] is None:
@@ -211,17 +215,19 @@ class GuiTourneyGraphViewer (threading.Thread):
                     i = i+1
                 if i == len(datesXAbs):
                     print "Wow wow wow : no dates in your whole tourneys"
+                    useDates = False
                 else:
                     datesXAbs[0] = datesXAbs[i]
 
             #no convert date to dateTime format
-            for i in range(0, len(datesXAbs)):
-                if datesXAbs[i] is None:
-                    datesXAbs[i] = datesXAbs[i-1]
-                else:
-                    datesXAbs[i] = datetime.datetime.strptime(datesXAbs[i], "%Y-%m-%d %H:%M:%S")
+            if useDates:
+                for i in range(0, len(datesXAbs)):
+                    if datesXAbs[i] is None:
+                        datesXAbs[i] = datesXAbs[i-1]
+                    else:
+                        datesXAbs[i] = datetime.datetime.strptime(datesXAbs[i], "%Y-%m-%d %H:%M:%S")
 
-                datesXAbs[i] = datesXAbs[i].strftime('%d/%m')
+                    datesXAbs[i] = datesXAbs[i].strftime('%d/%m')
 
 
 
@@ -246,12 +252,12 @@ class GuiTourneyGraphViewer (threading.Thread):
                             gain="+"
                         gain += str(green[i])
 
-                    self.ax.annotate(gain, xy=(i, 0), xycoords=('data', 'axes fraction'),
-                    xytext=(0, 18), textcoords='offset points', va='top', ha='center')
+                    self.ax.annotate(gain, xy=(i, 0), color=mycolor, xycoords=('data', 'axes fraction'),
+                    xytext=(0, 18), textcoords='offset points', va='top', ha='left')
 
-
-                    self.ax.annotate(datesXAbs[i], xy=(i, 0), xycoords=('data', 'axes fraction'),
-                    xytext=(0, -18), textcoords='offset points', va='top', ha='center')
+                    if useDates:
+                        self.ax.annotate(datesXAbs[i], xy=(i, 0), xycoords=('data', 'axes fraction'),
+                        xytext=(0, -18), textcoords='offset points', va='top', ha='left')
 
 
 
