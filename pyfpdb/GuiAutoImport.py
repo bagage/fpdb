@@ -143,6 +143,9 @@ class GuiAutoImport (threading.Thread):
         self.mainVBox.show_all()
         self.addText(_("Auto Import Ready."))
 
+        #update the graph at entry (simulate a «Start Auto Import» click)
+        gobject.GObject.emit (self.startButton, "clicked");
+
     def addText(self, text):
         end_iter = self.textbuffer.get_end_iter()
         self.textbuffer.insert(end_iter, text)
@@ -155,7 +158,7 @@ class GuiAutoImport (threading.Thread):
 #       Browse is not valid while hud is running, so return immediately
         if (self.pipe_to_hud):
             return
-            
+
         current_path=data[1].get_text()
 
         dia_chooser = gtk.FileChooserDialog(title=_("Please choose the path that you want to Auto Import"),
@@ -237,7 +240,7 @@ class GuiAutoImport (threading.Thread):
         # That is not correct.  It should open another dir for importing while piping the
         # results to the same pipe.  This means that self.path should be a a list of dirs
         # to watch.
-        
+
         if data == "autostart" or (widget == self.startButton and self.startButton.get_active()):
             self.startButton.set_active(True)
             # - Does the lock acquisition need to be more sophisticated for multiple dirs?
@@ -329,7 +332,7 @@ class GuiAutoImport (threading.Thread):
 #       Anything typed into dirPath was never recognised (only the browse button works)
 #       so just prevent entry to avoid user confusion
         dirPath.set_editable(False)
-        
+
         dirPath.show()
 
         browseButton=gtk.Button(_("Browse..."))

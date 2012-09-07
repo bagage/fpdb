@@ -23,6 +23,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 import sys
 from time import time, strftime
@@ -73,7 +74,7 @@ onlinehelp = {'Game':_('Type of Game'),
               'bbxr/100':_('Big blinds won per 100 hands when excluding rake'),
               'Variance':_('Measure of uncertainty'),
               'Std. Dev':_('Measure of uncertainty')
-              } 
+              }
 
 
 
@@ -87,15 +88,15 @@ class DemoTips(TreeViewTooltips):
         model = view.get_model()
         cards = model[path][0]
         title=column.get_title()
-        if (title == 'Hand' or title == 'Game'): display=''     #no tooltips on headers                   
+        if (title == 'Hand' or title == 'Game'): display=''     #no tooltips on headers
         else: display='<big>%s for %s</big>\n<i>%s</i>' % (title,cards,onlinehelp[title])
         return (display)
 
     def location(self, x, y, w, h):
         # this will place the tooltip above and to the right
         return x + 30, y - (h + 10)
-        
-        
+
+
 
 class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
 
@@ -104,7 +105,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.conf = config
         self.main_window = mainwin
         self.sql = querylist
-        
+
         self.liststore = []   # gtk.ListStore[]         stores the contents of the grids
         self.listcols = []    # gtk.TreeViewColumn[][]  stores the columns in the grids
 
@@ -183,7 +184,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.stats_vbox = None
         self.detailFilters = []   # the data used to enhance the sql select
         self.cardsFilters = []
-        
+
         #self.main_hbox = gtk.HBox(False, 0)
         #self.main_hbox.show()
         self.main_hbox = gtk.HPaned()
@@ -220,6 +221,8 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
 
         self.last_pos = -1
 
+        #update the graph at entry (simulate a «Refresh stats click)
+        gobject.GObject.emit (self.filters.Button2, "clicked");
 
     def get_vbox(self):
         """returns the vbox of this thread"""
@@ -300,7 +303,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
         # Scrolled window for summary table
         swin = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
         swin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        vbox.pack1(swin) #, resize=True)  don't use resize, self.height_inc relies on initial 
+        vbox.pack1(swin) #, resize=True)  don't use resize, self.height_inc relies on initial
                          # height of pane being correct for one row
 
         # Display summary table at top of page
@@ -317,7 +320,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
             # can't currently do this combination so skip detailed table
             show_detail = False
 
-        if show_detail: 
+        if show_detail:
             # Separator
             vbox2 = gtk.VBox(False, 0)
             heading = gtk.Label(self.filterText['handhead'])
@@ -419,7 +422,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
             print ("***sortcols " + _("error") + ": " + str(sys.exc_info()[1]))
             print "\n".join( [e[0]+':'+str(e[1])+" "+e[2] for e in err] )
     #end def sortcols
-    
+
 
     def addGrid(self, vbox, query, flags, playerids, sitenos, limits, type, seats, groups, dates, games, currencies):
         counter = 0
@@ -437,7 +440,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
 
         # pre-fetch some constant values:
         colshow = colshowsumm
-        if groups['posn']:  colshow = colshowposn 
+        if groups['posn']:  colshow = colshowposn
         self.cols_to_show = [x for x in self.columns if x[colshow]]
         hgametypeid_idx = colnames.index('hgametypeid')
 
@@ -533,7 +536,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
             sqlrow += 1
             row += 1
         tips = DemoTips(column[colformat])
-        tips.add_view(view)     
+        tips.add_view(view)
 
         vbox.show_all()
         view.show()
@@ -552,7 +555,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
             holecards = flags[0]
             numhands = flags[1]
         colshow = colshowsumm
-        if groups['posn']:  colshow = colshowposn 
+        if groups['posn']:  colshow = colshowposn
 
         pname_column = (x for x in self.columns if x[0] == 'pname').next()
         if 'allplayers' in groups and groups['allplayers']:
@@ -600,7 +603,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
                 else:
                     gametest = "and gt.category IS NULL"
         query = query.replace("<game_test>", gametest)
-        
+
         q = []
         for n in currencies:
             if currencies[n]:
@@ -626,7 +629,7 @@ class GuiRingPlayerStats (GuiPlayerStats.GuiPlayerStats):
                 else:
                     sitetest = "and gt.siteId IS NULL"
         query = query.replace("<site_test>", sitetest)
-        
+
         if seats:
             query = query.replace('<seats_test>', 'between ' + str(seats['from']) + ' and ' + str(seats['to']))
             if 'show' in seats and seats['show']:

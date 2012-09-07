@@ -22,6 +22,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 import sys
 import traceback
@@ -105,6 +106,8 @@ class GuiTourneyGraphViewer (threading.Thread):
         #self.exportButton.set_sensitive(False)
         self.canvas = None
 
+        #update the graph at entry (simulate a «Refresh Graph» click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
 
         self.db.rollback()
 

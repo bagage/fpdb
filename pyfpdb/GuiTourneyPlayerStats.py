@@ -22,6 +22,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 from time import time, strftime
 
 import Charset
@@ -38,10 +39,10 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.sql = sql
         self.main_window = mainwin
         self.debug = debug
-        
+
         self.liststore = []   # gtk.ListStore[]         stores the contents of the grids
         self.listcols = []    # gtk.TreeViewColumn[][]  stores the columns in the grids
-        
+
         filters_display = { "Heroes"    : True,
                             "Sites"     : True,
                             #"Games"     : True,
@@ -56,7 +57,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
                             #"GroupsAll" : True,
                             #"Button1"   : True,
                             "Button2"   : True}
-        
+
         self.stats_frame = None
         self.stats_vbox = None
         self.detailFilters = []   # the data used to enhance the sql select
@@ -68,7 +69,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         #self.filters.registerButton1Callback(self.showDetailFilter)
         self.filters.registerButton2Name(_("_Refresh Stats"))
         self.filters.registerButton2Callback(self.refreshStats)
-        
+
         # ToDo: store in config
         # ToDo: create popup to adjust column config
         # columns to display, keys match column name returned by sql, values in tuple are:
@@ -91,7 +92,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
                        , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
                        , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
                        , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]]
-                       
+
         self.stats_frame = gtk.Frame()
         self.stats_frame.show()
 
@@ -105,6 +106,9 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.main_hbox.pack1(self.filters.get_vbox())
         self.main_hbox.pack2(self.stats_frame)
         self.main_hbox.show()
+
+        #update the graph at entry (simulate a «Refresh stats» click)
+        gobject.GObject.emit (self.filters.Button2, "clicked");
     #end def __init__
 
     def addGrid(self, vbox, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
@@ -114,7 +118,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         row = 0
         sqlrow = 0
         grid=numTourneys #TODO: should this be numTourneyTypes?
-        
+
         query = self.sql.query[query]
         query = self.refineQuery(query, numTourneys, tourneyTypes, playerids, sitenos, seats)
         print "DEBUG:\n%s" % query
@@ -127,7 +131,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         #self.cols_to_show = [x for x in self.columns if x[colshow]]
         #htourneytypeid_idx = colnames.index('tourneyTypeId')
         self.cols_to_show = self.columns #TODO do i need above 2 lines?
-        
+
         assert len(self.liststore) == grid, "len(self.liststore)="+str(len(self.liststore))+" grid-1="+str(grid)
         self.liststore.append( gtk.ListStore(*([str] * len(self.cols_to_show))) )
         view = gtk.TreeView(model=self.liststore[grid])
@@ -239,7 +243,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         if not playerids:
             print _("No player ids found")
             return
-        
+
         self.createStatsTable(vbox, tourneyTypes, playerids, sitenos, seats)
     #end def fillStatsFrame
 
@@ -247,10 +251,10 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         """returns the vbox of this thread"""
         return self.main_hbox
     #end def get_vbox
-    
+
     def refineQuery(self, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
         having = ''
-        
+
         #print "start of refinequery, playerids:",playerids
         if playerids:
             nametest = str(tuple(playerids))
@@ -262,7 +266,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         pname = "p.name"
         # set flag in self.columns to not show player name column
         #[x for x in self.columns if x[0] == 'pname'][0][1] = False #TODO: fix and reactivate
-            
+
         query = query.replace("<nametest>", nametest)
         query = query.replace("<playerName>", pname)
         query = query.replace("<havingclause>", having)
@@ -283,7 +287,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
                     sitetest = "and tt.siteId IS NULL"
         #print "refinequery, sitetest before its use for replacement:",sitetest
         query = query.replace("<sitetest>", sitetest)
-        
+
         if seats:
             query = query.replace('<seats_test>', 'between ' + str(seats['from']) + ' and ' + str(seats['to']))
             if 'show' in seats and seats['show']:
@@ -302,7 +306,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         #query = query.replace("<gtbigBlind_test>", bbtest)
 
         #query = query.replace("<orderbyhgametypeId>", "")
-        
+
         # process self.detailFilters (a list of tuples)
         flagtest = ''
         #self.detailFilters = [('h.seats', 5, 6)]   # for debug
@@ -341,7 +345,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         if self.last_pos > 0:
             self.stats_vbox.set_position(self.last_pos)
     #end def refreshStats
-    
+
     def reset_style_render_func(self, treeviewcolumn, cell, model, iter):
         cell.set_property('foreground', None)
     #end def reset_style_render_func
