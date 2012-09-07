@@ -168,7 +168,6 @@ class GuiTourneyGraphViewer (threading.Thread):
 
 
         #Set axis labels and grid overlay properites
-        self.ax.set_xlabel(_("Dates"), fontsize = 12)
         self.ax.set_ylabel("$", fontsize = 12)
         self.ax.grid(color='g', linestyle=':', linewidth=0.2)
         if green == None or green == []:
@@ -204,7 +203,8 @@ class GuiTourneyGraphViewer (threading.Thread):
         else:
             self.ax.set_title(_("Tournament Results"))
 
-            #Draw plot
+            #Get the dates of tourneys
+            #if first tourney has no date, get the most ancient date and assume it's his one
             if datesXAbs[0] is None:
                 i = 1
                 while i < len(datesXAbs) and type(datesXAbs[i]) is None:
@@ -214,7 +214,7 @@ class GuiTourneyGraphViewer (threading.Thread):
                 else:
                     datesXAbs[0] = datesXAbs[i]
 
-
+            #no convert date to dateTime format
             for i in range(0, len(datesXAbs)):
                 if datesXAbs[i] is None:
                     datesXAbs[i] = datesXAbs[i-1]
@@ -225,60 +225,33 @@ class GuiTourneyGraphViewer (threading.Thread):
 
 
 
-            color='red'
+            mycolor='red'
             if green[0]>0:
-                color='green'
-            self.ax.bar(0, green[0], width=1, facecolor=color, edgecolor='gray')
-
+                mycolor='green'
+            self.ax.plot([0,1], [0,green[0]], color=mycolor, label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
             for i in range(1,  len(green)):
                 final=green[i]-green[i-1]
-                color='red'
+                mycolor='red'
                 if (green[i]>0):
-                    color='green'
+                    mycolor='green'
 
 
-                self.ax.bar(i, final, bottom=green[i-1],  width=1, facecolor=color, edgecolor='gray')
-                print green[i-1], "---->", green[i], i+1
-                #~self.ax.xaxis.set_visible(False)
-                gain=""
-                if (final==0):
-                    gain="="
-                else:
-                    if (final>0):
-                        gain="+"
-                    gain += str(final)
+                self.ax.plot([i,i+1], [green[i-1],green[i]], color=mycolor)
+                if (i % (len(green)/5) == 0):
+                    gain=""
+                    if (green[i]==0):
+                        gain="="
+                    else:
+                        if (green[i]>0):
+                            gain="+"
+                        gain += str(green[i])
 
-                self.ax.annotate(gain, xy=(i, 0), xycoords=('data', 'axes fraction'),
-                xytext=(0, 18), textcoords='offset points', va='top', ha='center')
-
-                self.ax.annotate(datesXAbs[i], xy=(i, 0), xycoords=('data', 'axes fraction'),
-                xytext=(0, -18), textcoords='offset points', va='top', ha='center')
-
-            #~counts, bins, patches = self.ax.hist(green, facecolor='yellow', edgecolor='gray')
-            #~# Set the ticks to be at the edges of the bins.
-            #~self.ax.set_xticks(bins)
-            #~# Change the colors of bars at the edges...
-            #~for patch, rightside, leftside in zip(patches, bins[1:], bins[:-1]):
-                #~if rightside < 0:
-                    #~patch.set_facecolor('green')
-                #~else:
-                    #~patch.set_facecolor('red')
-            #~# Label the raw counts and the percentages below the x-axis...
-            #~bin_centers = 0.5 * np.diff(bins) + bins[:-1]
-            #~for count, x, i in zip(counts, bin_centers, range(0, len(green))):
-                #~print count, x, i, green[i]
-                #~# Label the raw counts
-                #~self.ax.annotate(str(count), xy=(x, 0), xycoords=('data', 'axes fraction'),
-                #~xytext=(0, -18), textcoords='offset points', va='top', ha='center')
-                #~# Label the percentages
-                #~self.ax.annotate(datesXAbs[i], xy=(x, 0), xycoords=('data', 'axes fraction'),
-                #~xytext=(0, -32), textcoords='offset points', va='top', ha='center')
-#~
+                    self.ax.annotate(gain, xy=(i, 0), xycoords=('data', 'axes fraction'),
+                    xytext=(0, 18), textcoords='offset points', va='top', ha='center')
 
 
-
-
-
+                    self.ax.annotate(datesXAbs[i], xy=(i, 0), xycoords=('data', 'axes fraction'),
+                    xytext=(0, -18), textcoords='offset points', va='top', ha='center')
 
 
 
@@ -286,13 +259,8 @@ class GuiTourneyGraphViewer (threading.Thread):
 
             #~self.ax.axhline(0, color='black', lw=2)
 
-            #~self.ax.xaxis.set_major_locator(DayLocator())
-            #~self.ax.xaxis.set_major_formatter(DateFormatter('%d/%m'))
-            #~self.ax.xaxis.set_minor_locator(DayLocator())
-            #~self.ax.autoscale_view()
-
-            #~legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
-            #~legend.draggable(True)
+            legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
+            legend.draggable(True)
 
             self.graphBox.add(self.canvas)
             self.canvas.show()
