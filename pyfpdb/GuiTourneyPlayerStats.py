@@ -64,24 +64,25 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         # columns to display, keys match column name returned by sql, values in tuple are:
         #     is column displayed, column heading, xalignment, formatting, celltype
         self.columns = [ ["siteName",       False,  _("Site"),    0.0, "%s", "str"]
-                       #,["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
-                       ,["tourneyName",     True, _("TourneyName"), 0.0, "%s", "str"]   # true not allowed for this line
-                       , ["category",       False,  _("Cat."),    0.0, "%s", "str"]
-                       , ["limitType",      False,  _("Limit"),   0.0, "%s", "str"]
-                       , ["currency",       False,  _("Curr."),   0.0, "%s", "str"]
-                       , ["buyIn",          True,  _("BuyIn"),   1.0, "%3.2f", "str"]
-                       , ["fee",            True,  _("Fee"),     1.0, "%3.2f", "str"]
-                       , ["playerName",     False, _("Name"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
-                       , ["tourneyCount",   True,  _("#"),       1.0, "%1.0f", "str"]
-                       , ["itm",            False,  _("ITM%"),    1.0, "%3.2f", "str"]
-                       , ["_1st",           True, _("1st"),     1.0, "%1.0f", "str"]
-                       , ["_2nd",           True,  _("2nd"),     1.0, "%1.0f", "str"]
-                       , ["_3rd",           True,  _("3rd"),     1.0, "%1.0f", "str"]
-                       , ["unknownRank",    False,  _("Rank?"),   1.0, "%1.0f", "str"]
-                       , ["spent",          True,  _("Spent"),   1.0, "%3.2f", "str"]
-                       , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
-                       , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
-                       , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]]
+                       #, ["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
+                        , ["tourneyName",     True, _("TourneyName"), 0.0, "%s", "str"]
+                        , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
+                        , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]
+                        , ["spent",          True,  _("Spent"),   1.0, "%3.2f", "str"]
+                        , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
+                        , ["category",       False,  _("Cat."),    0.0, "%s", "str"]
+                        , ["limitType",      False,  _("Limit"),   0.0, "%s", "str"]
+                        , ["currency",       False,  _("Curr."),   0.0, "%s", "str"]
+                        , ["buyIn",          True,  _("BuyIn"),   1.0, "%3.2f", "str"]
+                        , ["fee",            True,  _("Fee"),     1.0, "%3.2f", "str"]
+                        , ["playerName",     False, _("Name"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
+                        , ["tourneyCount",   True,  _("#"),       1.0, "%1.0f", "str"]
+                        , ["itm",            False,  _("ITM%"),    1.0, "%3.2f", "str"]
+                        , ["_1st",           True, _("1st"),     1.0, "%1.0f", "str"]
+                        , ["_2nd",           True,  _("2nd"),     1.0, "%1.0f", "str"]
+                        , ["_3rd",           True,  _("3rd"),     1.0, "%1.0f", "str"]
+                        , ["unknownRank",    False,  _("Rank?"),   1.0, "%1.0f", "str"]]
+
 
         self.stats_frame = None
         self.stats_vbox = None
@@ -238,7 +239,6 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
 
         # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
         for col, column in enumerate(self.cols_to_show):
-            print column[colalias], tabOps[column[colalias]]
             if tabOps[column[colalias]] == 'ON':
                 if column[colalias] == 'game' and holecards:
                     s = [x for x in self.columns if x[colalias] == 'hand'][0][colheading]
@@ -282,6 +282,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
                     value = result[sqlrow][colnames.index(column[colalias])]
                 else:
                     value = 111
+
                 if value != None and value != -999:
                     treerow.append(column[colformat] % value)
                 else:
