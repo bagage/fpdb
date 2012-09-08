@@ -41,18 +41,19 @@ import Charset
 import Filters
 
 class TourneyFilters(Filters.Filters):
-    def __init__(self, db, config, qdict, display = {}, debug=True):
+    def __init__(self, db, config, qdict, display = {}, tabdisplay = { }, debug=True):
         self.debug = debug
         self.db = db
         self.cursor = db.cursor
         self.sql = db.sql
         self.conf = db.config
         self.display = display
-        
+        self.tabdisplay = tabdisplay
+
         self.filterText = {'playerstitle':_('Hero:'), 'sitestitle':_('Sites:'), 'seatstitle':_('Number of Players:'),
                     'seatsbetween':_('Between:'), 'seatsand':_('And:'), 'datestitle':_('Date:'),
                     'tourneyTypesTitle':_('Tourney Type')}
-        
+
         gen = self.conf.get_general_params()
         self.day_start = 0
         if 'day_start' in gen:
@@ -73,7 +74,7 @@ class TourneyFilters(Filters.Filters):
 
         self.make_filter()
     #end def __init__
-    
+
     def __refresh(self, widget, entry): #identical with Filters
         for w in self.mainVBox.get_children():
             w.destroy()
@@ -88,6 +89,7 @@ class TourneyFilters(Filters.Filters):
         self.siteid = {}
         self.heroes = {}
         self.boxes = {}
+        self.tabops = {}
         self.toggles  = {}
 
         for site in self.conf.get_supported_sites():
@@ -132,6 +134,15 @@ class TourneyFilters(Filters.Filters):
         self.fillTourneyTypesFrame(vbox)
         tourneyTypesFrame.add(vbox)
 
+        # TabOps
+        tabopsFrame = gtk.Frame()
+        #tabops.set_label_align(0,0, 0.0)
+        tabopsFrame.show()
+        vbox = gtk.VBox(False, 0)
+
+        self.fillTabOpsFrame(vbox)
+        tabopsFrame.add(vbox)
+
         # Seats
         seatsFrame = gtk.Frame()
         seatsFrame.show()
@@ -162,6 +173,7 @@ class TourneyFilters(Filters.Filters):
         self.mainVBox.pack_start(sitesFrame, expand)
         self.mainVBox.pack_start(seatsFrame, expand)
         self.mainVBox.pack_start(dateFrame, expand)
+        self.mainVBox.pack_start(tabopsFrame, expand)
         self.mainVBox.pack_start(gtk.VBox(False, 0))
         #self.mainVBox.pack_start(self.Button1, expand)
         self.mainVBox.pack_start(self.Button2, expand)
@@ -177,6 +189,8 @@ class TourneyFilters(Filters.Filters):
             seatsFrame.hide()
         if "Dates" not in self.display or self.display["Dates"] == False:
             dateFrame.hide()
+        if "TabOps" not in self.display or self.display["TabOps"] == False:
+            tabopsFrame.hide()
         #if "Button1" not in self.display or self.display["Button1"] == False:
         #    self.Button1.hide()
         if "Button2" not in self.display or self.display["Button2"] == False:
@@ -196,4 +210,86 @@ class TourneyFilters(Filters.Filters):
         # make sure any locks on db are released:
         self.db.rollback()
     #end def make_filter
+
+
+    def getTabOps(self):
+        return self.tabops
+
+
+    def fillTabOpsFrame(self, vbox):
+        top_hbox = gtk.HBox(False, 0)
+        vbox.pack_start(top_hbox, False, False, 0)
+        title = gtk.Label(_("Tab Options:"))
+        title.set_alignment(xalign=0.0, yalign=0.5)
+        top_hbox.pack_start(title, expand=True, padding=3)
+        showb = gtk.Button(label=_("hide"), stock=None, use_underline=True)
+        showb.set_alignment(xalign=1.0, yalign=0.5)
+        showb.connect('clicked', self.__toggle_box, 'TabOps')
+        self.toggles['TabOps'] = showb
+        top_hbox.pack_start(showb, expand=False, padding=1)
+
+        vbox1 = gtk.VBox(False, 0)
+        vbox.pack_start(vbox1, False, False, 0)
+        vbox1.show()
+        self.boxes['TabOps'] = vbox1
+
+        hbox1 = gtk.HBox(False, 0)
+        vbox1.pack_start(hbox1, False, False, 0)
+        hbox1.show()
+
+        label = gtk.Label(_("Show Tab In:"))
+        label.set_alignment(xalign=0.0, yalign=0.5)
+        hbox1.pack_start(label, True, True, 0)
+        label.show()
+
+        for i in self.tabdisplay:
+            button = gtk.CheckButton(i[2], True)
+            vbox1.pack_start(button, True, True, 0)
+            button.connect("toggled", self.__set_tabopscheck_select, i[0])
+            button.show()
+            #put it «checked» if it is set to true
+            if i[1] is True:
+                button.set_active(True)
+            self.tabops[i[0]] = 'ON' if i[1] is True else 'OFF'
+
+    def __set_tabopscheck_select(self, w, data):
+        #~print "%s was toggled %s" % (data, ("OFF", "ON")[w.get_active()])
+        self.tabops[data] = ("OFF", "ON")[w.get_active()]
+
+    def __toggle_box(self, widget, entry):
+        if (entry == "all"):
+            if (widget.get_label() == _("hide all")):
+                for entry in self.boxes.keys():
+                    if (self.boxes[entry].props.visible):
+                        self.__toggle_box(widget, entry)
+                        widget.set_label(_("show all"))
+            else:
+                for entry in self.boxes.keys():
+                    if (not self.boxes[entry].props.visible):
+                        self.__toggle_box(widget, entry)
+                    widget.set_label(_("hide all"))
+        elif self.boxes[entry].props.visible:
+            self.boxes[entry].hide()
+            self.toggles[entry].set_label(_("show"))
+            for entry in self.boxes.keys():
+                if (self.display.has_key(entry) and
+                    self.display[entry] and
+                    self.boxes[entry].props.visible):
+                    break
+            else:
+                self.toggles["all"].set_label(_("show all"))
+        else:
+            self.boxes[entry].show()
+            self.toggles[entry].set_label(_("hide"))
+            for entry in self.boxes.keys():
+                if (self.display.has_key(entry) and
+                    self.display[entry] and
+                    not self.boxes[entry].props.visible):
+                    break
+            else:
+                self.toggles["all"].set_label(_("hide all"))
+    #end def __toggle_box
+
+
 #end class TourneyFilters
+

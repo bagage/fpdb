@@ -22,10 +22,10 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 from time import time, strftime
-    
-import fpdb_import
+
 import Database
 import Filters
 import Charset
@@ -38,7 +38,7 @@ class GuiPositionalStats (threading.Thread):
         self.MYSQL_INNODB   = 2
         self.PGSQL          = 3
         self.SQLITE         = 4
-        
+
         # create new db connection to avoid conflicts with other threads
         self.db = Database.Database(self.conf, sql=self.sql)
         self.cursor = self.db.cursor
@@ -96,7 +96,7 @@ class GuiPositionalStats (threading.Thread):
         self.stat_table = None
         self.stats_frame = None
         self.stats_vbox = None
-        
+
         self.main_hbox = gtk.HBox(False, 0)
         self.main_hbox.show()
 
@@ -105,11 +105,11 @@ class GuiPositionalStats (threading.Thread):
         self.stats_frame.show()
         self.stats_vbox = gtk.VBox(False, 0)
         self.stats_vbox.show()
-        
+
         #FIXME Fliter box is not moveable, Treeviewer is NOT scrollable
 
         # This could be stored in config eventually, or maybe configured in this window somehow.
-        # Each posncols element is the name of a column returned by the sql 
+        # Each posncols element is the name of a column returned by the sql
         # query (in lower case) and each posnheads element is the text to use as
         # the heading in the GUI. Both sequences should be the same length.
         # To miss columns out remove them from both tuples (the 1st 2 elements should always be included).
@@ -130,6 +130,8 @@ class GuiPositionalStats (threading.Thread):
         self.main_hbox.pack_start(self.filters.get_vbox())
         self.main_hbox.pack_start(self.stats_frame)
 
+        #update the graph at entry (simulate a «Refresh click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
 
     def get_vbox(self):
         """returns the vbox of this thread"""
@@ -223,10 +225,10 @@ class GuiPositionalStats (threading.Thread):
                 listcols[col].pack_start(numcell, expand=True)
                 listcols[col].add_attribute(numcell, 'text', col)
                 listcols[col].set_expand(True)
-            col +=1 
+            col +=1
 
         # Code below to be used when full column data structures implemented like in player stats:
-        
+
         # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
         #for col, column in enumerate(cols_to_show):
         #    if column[colalias] == 'game' and holecards:
@@ -285,7 +287,7 @@ class GuiPositionalStats (threading.Thread):
             if rowprinted:
                 sqlrow = sqlrow+1
             row = row + 1
-        
+
         # show totals at bottom
         tmp = self.sql.query['playerStats']
         tmp = self.refineQuery(tmp, playerids, sitenos, limits, seats, dates)
@@ -360,13 +362,13 @@ class GuiPositionalStats (threading.Thread):
             if self.db.backend == self.MYSQL_INNODB:
                 bigblindselect = """concat('$'
                                           ,trim(leading ' ' from
-                                                case when min(gt.bigBlind) < 100 
+                                                case when min(gt.bigBlind) < 100
                                                      then format(min(gt.bigBlind)/100.0, 2)
                                                      else format(min(gt.bigBlind)/100.0, 0)
                                                 end)
                                           ,' - $'
                                           ,trim(leading ' ' from
-                                                case when max(gt.bigBlind) < 100 
+                                                case when max(gt.bigBlind) < 100
                                                      then format(max(gt.bigBlind)/100.0, 2)
                                                      else format(max(gt.bigBlind)/100.0, 0)
                                                 end)
@@ -380,11 +382,11 @@ class GuiPositionalStats (threading.Thread):
                                          end)
                                     || ' - $' ||
                                     trim(leading ' ' from
-                                         case when max(gt.bigBlind) < 100 
+                                         case when max(gt.bigBlind) < 100
                                               then to_char(max(gt.bigBlind)/100.0,'90D00')
                                               else to_char(max(gt.bigBlind)/100.0,'999990')
                                          end) """
-            bigblindselect = "cast('' as char)" # avoid odd effects when some posns and/or seats 
+            bigblindselect = "cast('' as char)" # avoid odd effects when some posns and/or seats
                                                 # are missing from some limits (dunno why cast is
                                                 # needed but it says "unknown type" otherwise?!
             query = query.replace("<selectgt.bigBlind>", bigblindselect)
@@ -394,19 +396,19 @@ class GuiPositionalStats (threading.Thread):
         else:
             if self.db.backend == self.MYSQL_INNODB:
                 bigblindselect = """concat('$', trim(leading ' ' from
-                                                     case when gt.bigBlind < 100 
+                                                     case when gt.bigBlind < 100
                                                           then format(gt.bigBlind/100.0, 2)
                                                           else format(gt.bigBlind/100.0, 0)
-                                                     end 
+                                                     end
                                                     ) )"""
             elif self.db.backend == self.SQLITE:
                 bigblindselect = """gt.bigBlind || gt.limitType || ' ' || gt.currency"""
             else:
                 bigblindselect = """'$' || trim(leading ' ' from
-                                                case when gt.bigBlind < 100 
+                                                case when gt.bigBlind < 100
                                                      then to_char(gt.bigBlind/100.0,'90D00')
                                                      else to_char(gt.bigBlind/100.0,'999990')
-                                                end 
+                                                end
                                                ) """
             query = query.replace("<selectgt.bigBlind>", bigblindselect)
             query = query.replace("<groupbygt.bigBlind>", ",gt.bigBlind")

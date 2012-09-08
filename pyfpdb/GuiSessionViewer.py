@@ -23,6 +23,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 import traceback
 from time import time, strftime, localtime, gmtime
@@ -43,7 +44,6 @@ except ImportError, inst:
     print "ImportError: %s" % inst.args
 
 import Card
-import fpdb_import
 import Database
 import Filters
 import Charset
@@ -70,7 +70,7 @@ class GuiSessionViewer:
         self.canvas = None
         self.ax = None
         self.graphBox = None
-        
+
         # create new db connection to avoid conflicts with other threads
         self.db = Database.Database(self.conf, sql=self.sql)
         self.cursor = self.db.cursor
@@ -143,6 +143,8 @@ class GuiSessionViewer:
         main_vbox.pack2(self.stats_frame)
         self.main_hbox.show()
 
+        #update the graph at entry (simulate a «Refresh» click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
         # make sure Hand column is not displayed
         #[x for x in self.columns if x[0] == 'hand'][0][1] = False
         # if DEBUG == False:
@@ -306,7 +308,7 @@ class GuiSessionViewer:
         q = q.replace("<ampersand_s>", "%s")
 
         if DEBUG:
-            hands = [ 
+            hands = [
                 ( u'10000',  10), ( u'10000',  20), ( u'10000',  30),
                 ( u'20000', -10), ( u'20000', -20), ( u'20000', -30),
                 ( u'30000',  40),
@@ -328,7 +330,7 @@ class GuiSessionViewer:
             self.db.cursor.execute(q)
             hands = self.db.cursor.fetchall()
 
-        #fixme - nasty hack to ensure that the hands.insert() works 
+        #fixme - nasty hack to ensure that the hands.insert() works
         # for mysql data.  mysql returns tuples which can't be inserted
         # into so convert explicity to list.
         hands = list(hands)
@@ -395,7 +397,7 @@ class GuiSessionViewer:
                 open = (sum(profits[:first_idx]))/100
                 close = (sum(profits[:end_idx]))/100
                 #print "DEBUG: range: (%s, %s) - (min, max): (%s, %s) - (open,close): (%s, %s)" %(first_idx, end_idx, lwm, hwm, open, close)
-            
+
                 total_hands = total_hands + hds
                 total_time = total_time + minutesplayed
                 if (global_lwm == None or global_lwm > lwm):

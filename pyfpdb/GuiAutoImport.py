@@ -28,12 +28,11 @@ import gtk
 import gobject
 import os
 import sys
-import time
 
 import logging
 
 
-import fpdb_import
+import Importer
 from optparse import OptionParser
 import Configuration
 import string
@@ -55,15 +54,12 @@ class GuiAutoImport (threading.Thread):
         self.sql = sql
         self.parent = parent
 
-        imp = self.config.get_import_parameters()
-
         self.input_settings = {}
         self.pipe_to_hud = None
 
-        self.importer = fpdb_import.Importer(self, self.settings, self.config, self.sql)
+        self.importer = Importer.Importer(self, self.settings, self.config, self.sql)
         self.importer.setCallHud(True)
         self.importer.setQuiet(False)
-        self.importer.setFailOnError(False)
         self.importer.setHandCount(0)
 
         self.server = settings['db-host']
@@ -147,6 +143,9 @@ class GuiAutoImport (threading.Thread):
         self.mainVBox.show_all()
         self.addText(_("Auto Import Ready."))
 
+        #update the graph at entry (simulate a «Start Auto Import» click)
+        gobject.GObject.emit (self.startButton, "clicked");
+
     def addText(self, text):
         end_iter = self.textbuffer.get_end_iter()
         self.textbuffer.insert(end_iter, text)
@@ -159,7 +158,7 @@ class GuiAutoImport (threading.Thread):
 #       Browse is not valid while hud is running, so return immediately
         if (self.pipe_to_hud):
             return
-            
+
         current_path=data[1].get_text()
 
         dia_chooser = gtk.FileChooserDialog(title=_("Please choose the path that you want to Auto Import"),
@@ -241,7 +240,7 @@ class GuiAutoImport (threading.Thread):
         # That is not correct.  It should open another dir for importing while piping the
         # results to the same pipe.  This means that self.path should be a a list of dirs
         # to watch.
-        
+
         if data == "autostart" or (widget == self.startButton and self.startButton.get_active()):
             self.startButton.set_active(True)
             # - Does the lock acquisition need to be more sophisticated for multiple dirs?
@@ -257,7 +256,7 @@ class GuiAutoImport (threading.Thread):
                     gtk.main_iteration(False)
                 if self.pipe_to_hud is None:
                     if self.config.install_method == "exe":    # if py2exe, run hud_main.exe
-                        path = os.path.join(self.config.fpdb_program_path, u'pyfpdb')
+                        path = self.config.pyfpdb_path
                         command = "HUD_main.exe"
                         bs = 0
                     elif os.name == 'nt':
@@ -284,12 +283,10 @@ class GuiAutoImport (threading.Thread):
                         else:
                             self.pipe_to_hud = subprocess.Popen(command, bufsize=bs, stdin=subprocess.PIPE, universal_newlines=True)
                     except:
-                        err = traceback.extract_tb(sys.exc_info()[2])[-1]
-                        #self.addText( _("\n*** GuiAutoImport Error opening pipe: " + err[2] + "(" + str(err[1]) + "): " + str(sys.exc_info()[1])))
                         self.addText("\n" + _("*** GuiAutoImport Error opening pipe:") + " " + traceback.format_exc() )
                     else:
                         for site in self.input_settings:
-                            self.importer.addImportDirectory(self.input_settings[site][0], True, site, self.input_settings[site][1])
+                            self.importer.addImportDirectory(self.input_settings[site][0], monitor = True)
                             self.addText("\n * " + _("Add %s import directory %s") % (site, str(self.input_settings[site][0])))
                             self.do_import()
                     interval = int(self.intervalEntry.get_text())
@@ -335,7 +332,7 @@ class GuiAutoImport (threading.Thread):
 #       Anything typed into dirPath was never recognised (only the browse button works)
 #       so just prevent entry to avoid user confusion
         dirPath.set_editable(False)
-        
+
         dirPath.show()
 
         browseButton=gtk.Button(_("Browse..."))

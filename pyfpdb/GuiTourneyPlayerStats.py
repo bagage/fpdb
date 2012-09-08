@@ -22,6 +22,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 from time import time, strftime
 
 import Charset
@@ -38,60 +39,67 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.sql = sql
         self.main_window = mainwin
         self.debug = debug
-        
+
         self.liststore = []   # gtk.ListStore[]         stores the contents of the grids
         self.listcols = []    # gtk.TreeViewColumn[][]  stores the columns in the grids
-        
+
         filters_display = { "Heroes"    : True,
                             "Sites"     : True,
-                            #"Games"     : True,
-                            #"Limits"    : True,
-                            #"LimitSep"  : True,
-                            #"LimitType" : True,
-                            #"Type"      : True,
-                            "Seats"     : True,
-                            #"SeatSep"   : True,
+                            #~"Games"     : True,
+                            #~"Limits"    : True,
+                            #~"LimitSep"  : True,
+                            #~"LimitType" : True,
+                            #~"Type"      : True,
+                            #~"Seats"     : True,
+                            #~"SeatSep"   : True,
                             "Dates"     : True,
-                            #"Groups"    : True,
-                            #"GroupsAll" : True,
-                            #"Button1"   : True,
+                            #~"Groups"    : True,
+                            #~"GroupsAll" : True,
+                            "TabOps"      : True,
+                            #~"Button1"   : True,
                             "Button2"   : True}
-        
+
+        # ToDo: store in config
+        # ToDo: create popup to adjust column config
+        # columns to display, keys match column name returned by sql, values in tuple are:
+        #     is column displayed, column heading, xalignment, formatting, celltype
+        self.columns = [ ["siteName",       False,  _("Site"),    0.0, "%s", "str"]
+                       #, ["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
+                        , ["tourneyName",     True, _("TourneyName"), 0.0, "%s", "str"]
+                        , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
+                        , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]
+                        , ["spent",          True,  _("Spent"),   1.0, "%3.2f", "str"]
+                        , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
+                        , ["category",       False,  _("Cat."),    0.0, "%s", "str"]
+                        , ["limitType",      False,  _("Limit"),   0.0, "%s", "str"]
+                        , ["currency",       False,  _("Curr."),   0.0, "%s", "str"]
+                        , ["buyIn",          True,  _("BuyIn"),   1.0, "%3.2f", "str"]
+                        , ["fee",            True,  _("Fee"),     1.0, "%3.2f", "str"]
+                        , ["playerName",     False, _("Name"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
+                        , ["tourneyCount",   True,  _("#"),       1.0, "%1.0f", "str"]
+                        , ["itm",            False,  _("ITM%"),    1.0, "%3.2f", "str"]
+                        , ["_1st",           True, _("1st"),     1.0, "%1.0f", "str"]
+                        , ["_2nd",           True,  _("2nd"),     1.0, "%1.0f", "str"]
+                        , ["_3rd",           True,  _("3rd"),     1.0, "%1.0f", "str"]
+                        , ["unknownRank",    False,  _("Rank?"),   1.0, "%1.0f", "str"]]
+
+
         self.stats_frame = None
         self.stats_vbox = None
         self.detailFilters = []   # the data used to enhance the sql select
 
         self.main_hbox = gtk.HPaned()
 
-        self.filters = TourneyFilters.TourneyFilters(self.db, self.conf, self.sql, display = filters_display)
+        #retrieve name+boolean mark from self.columns
+        tabDisp = [[a[i] for i in (0, 1, 2)] for a in self.columns]
+        self.filters = TourneyFilters.TourneyFilters(self.db, self.conf, self.sql, display = filters_display, tabdisplay = tabDisp)
+
+
         #self.filters.registerButton1Name(_("_Filters"))
         #self.filters.registerButton1Callback(self.showDetailFilter)
         self.filters.registerButton2Name(_("_Refresh Stats"))
         self.filters.registerButton2Callback(self.refreshStats)
-        
-        # ToDo: store in config
-        # ToDo: create popup to adjust column config
-        # columns to display, keys match column name returned by sql, values in tuple are:
-        #     is column displayed, column heading, xalignment, formatting, celltype
-        self.columns = [ ["siteName",       True,  _("Site"),    0.0, "%s", "str"]
-                       #,["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
-                       , ["category",       True,  _("Cat."),    0.0, "%s", "str"]
-                       , ["limitType",      True,  _("Limit"),   0.0, "%s", "str"]
-                       , ["currency",       True,  _("Curr."),   0.0, "%s", "str"]
-                       , ["buyIn",          True,  _("BuyIn"),   1.0, "%3.2f", "str"]
-                       , ["fee",            True,  _("Fee"),     1.0, "%3.2f", "str"]
-                       , ["playerName",     False, _("Name"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
-                       , ["tourneyCount",   True,  _("#"),       1.0, "%1.0f", "str"]
-                       , ["itm",            True,  _("ITM%"),    1.0, "%3.2f", "str"]
-                       , ["_1st",           False, _("1st"),     1.0, "%1.0f", "str"]
-                       , ["_2nd",           True,  _("2nd"),     1.0, "%1.0f", "str"]
-                       , ["_3rd",           True,  _("3rd"),     1.0, "%1.0f", "str"]
-                       , ["unknownRank",    True,  _("Rank?"),   1.0, "%1.0f", "str"]
-                       , ["spent",          True,  _("Spent"),   1.0, "%3.2f", "str"]
-                       , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
-                       , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
-                       , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]]
-                       
+
         self.stats_frame = gtk.Frame()
         self.stats_frame.show()
 
@@ -105,112 +113,31 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.main_hbox.pack1(self.filters.get_vbox())
         self.main_hbox.pack2(self.stats_frame)
         self.main_hbox.show()
+
+
+        #update the graph at entry (simulate a «Refresh stats» click)
+        gobject.GObject.emit (self.filters.Button2, "clicked");
     #end def __init__
 
-    def addGrid(self, vbox, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
-        #print "start of addGrid query", query
-        #print "start of addGrid. numTourneys:",numTourneys,"tourneyTypes:", tourneyTypes, "playerids:",playerids
-        counter = 0
-        row = 0
-        sqlrow = 0
-        grid=numTourneys #TODO: should this be numTourneyTypes?
-        
-        query = self.sql.query[query]
-        query = self.refineQuery(query, numTourneys, tourneyTypes, playerids, sitenos, seats)
-        print "DEBUG:\n%s" % query
-        self.cursor.execute(query)
-        result = self.cursor.fetchall()
-        #print "result of the big query in addGrid:",result
-        colnames = [desc[0] for desc in self.cursor.description]
+    def get_vbox(self):
+        """returns the vbox of this thread"""
+        return self.main_hbox
+    #end def get_vbox
 
-        # pre-fetch some constant values:
-        #self.cols_to_show = [x for x in self.columns if x[colshow]]
-        #htourneytypeid_idx = colnames.index('tourneyTypeId')
-        self.cols_to_show = self.columns #TODO do i need above 2 lines?
-        
-        assert len(self.liststore) == grid, "len(self.liststore)="+str(len(self.liststore))+" grid-1="+str(grid)
-        self.liststore.append( gtk.ListStore(*([str] * len(self.cols_to_show))) )
-        view = gtk.TreeView(model=self.liststore[grid])
-        view.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
-        #vbox.pack_start(view, expand=False, padding=3)
-        vbox.add(view)
-        textcell = gtk.CellRendererText()
-        textcell50 = gtk.CellRendererText()
-        textcell50.set_property('xalign', 0.5)
-        numcell = gtk.CellRendererText()
-        numcell.set_property('xalign', 1.0)
-        assert len(self.listcols) == grid
-        self.listcols.append( [] )
-
-        # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
-        for col, column in enumerate(self.cols_to_show):
-            if column[colalias] == 'game' and holecards:
-                s = [x for x in self.columns if x[colalias] == 'hand'][0][colheading]
-            else:
-                s = column[colheading]
-            self.listcols[grid].append(gtk.TreeViewColumn(s))
-            view.append_column(self.listcols[grid][col])
-            if column[colformat] == '%s':
-                if column[colxalign] == 0.0:
-                    self.listcols[grid][col].pack_start(textcell, expand=True)
-                    self.listcols[grid][col].add_attribute(textcell, 'text', col)
-                    cellrend = textcell
-                else:
-                    self.listcols[grid][col].pack_start(textcell50, expand=True)
-                    self.listcols[grid][col].add_attribute(textcell50, 'text', col)
-                    cellrend = textcell50
-                self.listcols[grid][col].set_expand(True)
-            else:
-                self.listcols[grid][col].pack_start(numcell, expand=True)
-                self.listcols[grid][col].add_attribute(numcell, 'text', col)
-                self.listcols[grid][col].set_expand(True)
-                cellrend = numcell
-                #self.listcols[grid][col].set_alignment(column[colxalign]) # no effect?
-            self.listcols[grid][col].set_clickable(True)
-            self.listcols[grid][col].connect("clicked", self.sortCols, (col,grid))
-            if col == 0:
-                self.listcols[grid][col].set_sort_order(gtk.SORT_DESCENDING)
-                self.listcols[grid][col].set_sort_indicator(True)
-            if column[coltype] == 'cash':
-                self.listcols[grid][col].set_cell_data_func(numcell, self.ledger_style_render_func)
-            else:
-                self.listcols[grid][col].set_cell_data_func(cellrend, self.reset_style_render_func)
-
-        rows = len(result) # +1 for title row
-
-        while sqlrow < rows:
-            treerow = []
-            for col,column in enumerate(self.cols_to_show):
-                if column[colalias] in colnames:
-                    value = result[sqlrow][colnames.index(column[colalias])]
-                else:
-                    value = 111
-                if value != None and value != -999:
-                    treerow.append(column[colformat] % value)
-                else:
-                    treerow.append(' ')
-            #print "addGrid, just before end of big for. grid:",grid,"treerow:",treerow
-            iter = self.liststore[grid].append(treerow)
-            sqlrow += 1
-            row += 1
-        vbox.show_all()
-    #end def addGrid
-
-    def createStatsTable(self, vbox, tourneyTypes, playerids, sitenos, seats):
-        startTime = time()
-        show_detail = True
-
-        # Scrolled window for summary table
-        swin = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
-        swin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        swin.show()
-        vbox.pack1(swin)
-
-        numTourneys = self.filters.getNumTourneys()
-        self.addGrid(swin, 'tourneyPlayerDetailedStats', numTourneys, tourneyTypes, playerids, sitenos, seats)
-
-        print _("Stats page displayed in %4.2f seconds") % (time() - startTime)
-    #end def createStatsTable
+    def refreshStats(self, widget, data):
+        self.last_pos = self.stats_vbox.get_position()
+        try: self.stats_vbox.destroy()
+        except AttributeError: pass
+        self.liststore = []
+        self.listcols = []
+        #self.stats_vbox = gtk.VBox(False, 0)
+        self.stats_vbox = gtk.VPaned()
+        self.stats_vbox.show()
+        self.stats_frame.add(self.stats_vbox)
+        self.fillStatsFrame(self.stats_vbox)
+        if self.last_pos > 0:
+            self.stats_vbox.set_position(self.last_pos)
+    #end def refreshStats
 
     def fillStatsFrame(self, vbox):
         tourneyTypes = self.filters.getTourneyTypes()
@@ -222,6 +149,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         dates = self.filters.getDates()
         sitenos = []
         playerids = []
+        tourneysName = []
 
         # Which sites are selected?
         for site in sites:
@@ -239,18 +167,135 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         if not playerids:
             print _("No player ids found")
             return
-        
+
         self.createStatsTable(vbox, tourneyTypes, playerids, sitenos, seats)
     #end def fillStatsFrame
 
-    def get_vbox(self):
-        """returns the vbox of this thread"""
-        return self.main_hbox
-    #end def get_vbox
-    
+    def createStatsTable(self, vbox, tourneyTypes, playerids, sitenos, seats):
+        startTime = time()
+        show_detail = True
+
+        # Scrolled window for summary table
+        swin = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
+        swin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        swin.show()
+        vbox.pack1(swin)
+
+        numTourneys = self.filters.getNumTourneys()
+        self.addGrid(swin, 'tourneyPlayerDetailedStats', numTourneys, tourneyTypes, playerids, sitenos, seats)
+
+        print _("Stats page displayed in %4.2f seconds") % (time() - startTime)
+    #end def createStatsTable
+
+    def addGrid(self, vbox, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
+
+        #print "start of addGrid query", query
+        #print "start of addGrid. numTourneys:",numTourneys,"tourneyTypes:", tourneyTypes, "playerids:",playerids
+        counter = 0
+        row = 0
+        sqlrow = 0
+        grid=numTourneys #TODO: should this be numTourneyTypes?
+
+        query = self.sql.query[query]
+        query = self.refineQuery(query, numTourneys, tourneyTypes, playerids, sitenos, seats)
+        #~print "DEBUG:\n%s" % query
+        self.cursor.execute(query)
+        result = self.cursor.fetchall()
+        #~print "result of the big query in addGrid:",result
+        colnames = [desc[0] for desc in self.cursor.description]
+
+
+
+        #~for i in range(0, len(tab)):
+            #~print tab['fee']
+            #~print self.columns['fee']
+            #~self.columns[i][1] = tab[i][1]
+
+        # pre-fetch some constant values:
+        #self.cols_to_show = [x for x in self.columns if x[colshow]]
+        #htourneytypeid_idx = colnames.index('tourneyTypeId')
+        tabOps = self.filters.getTabOps()
+        self.cols_to_show = []
+        for i in self.columns:
+            if tabOps[i[0]] == 'ON':
+                i[1] = True
+                self.cols_to_show.append(i) #TODO do i need above 2 lines?
+            else:
+                i[1] = False
+
+        assert len(self.liststore) == grid, "len(self.liststore)="+str(len(self.liststore))+" grid-1="+str(grid)
+        self.liststore.append( gtk.ListStore(*([str] * len(self.cols_to_show))) )
+        view = gtk.TreeView(model=self.liststore[grid])
+        view.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
+        #vbox.pack_start(view, expand=False, padding=3)
+        vbox.add(view)
+        textcell = gtk.CellRendererText()
+        textcell50 = gtk.CellRendererText()
+        textcell50.set_property('xalign', 0.5)
+        numcell = gtk.CellRendererText()
+        numcell.set_property('xalign', 1.0)
+        assert len(self.listcols) == grid
+        self.listcols.append( [] )
+
+        # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
+        for col, column in enumerate(self.cols_to_show):
+            if tabOps[column[colalias]] == 'ON':
+                if column[colalias] == 'game' and holecards:
+                    s = [x for x in self.columns if x[colalias] == 'hand'][0][colheading]
+                else:
+                    s = column[colheading]
+
+                self.listcols[grid].append(gtk.TreeViewColumn(s))
+                view.append_column(self.listcols[grid][col])
+                if column[colformat] == '%s':
+                    if column[colxalign] == 0.0:
+                        self.listcols[grid][col].pack_start(textcell, expand=True)
+                        self.listcols[grid][col].add_attribute(textcell, 'text', col)
+                        cellrend = textcell
+                    else:
+                        self.listcols[grid][col].pack_start(textcell50, expand=True)
+                        self.listcols[grid][col].add_attribute(textcell50, 'text', col)
+                        cellrend = textcell50
+                    self.listcols[grid][col].set_expand(True)
+                else:
+                    self.listcols[grid][col].pack_start(numcell, expand=True)
+                    self.listcols[grid][col].add_attribute(numcell, 'text', col)
+                    self.listcols[grid][col].set_expand(True)
+                    cellrend = numcell
+                    #self.listcols[grid][col].set_alignment(column[colxalign]) # no effect?
+                self.listcols[grid][col].set_clickable(True)
+                self.listcols[grid][col].connect("clicked", self.sortCols, (col,grid))
+                if col == 0:
+                    self.listcols[grid][col].set_sort_order(gtk.SORT_DESCENDING)
+                    self.listcols[grid][col].set_sort_indicator(True)
+                if column[coltype] == 'cash':
+                    self.listcols[grid][col].set_cell_data_func(numcell, self.ledger_style_render_func)
+                else:
+                    self.listcols[grid][col].set_cell_data_func(cellrend, self.reset_style_render_func)
+
+        rows = len(result) # +1 for title row
+
+        while sqlrow < rows:
+            treerow = []
+            for col,column in enumerate(self.cols_to_show):
+                if column[colalias] in colnames:
+                    value = result[sqlrow][colnames.index(column[colalias])]
+                else:
+                    value = 111
+
+                if value != None and value != -999:
+                    treerow.append(column[colformat] % value)
+                else:
+                    treerow.append(' ')
+            #print "addGrid, just before end of big for. grid:",grid,"treerow:",treerow
+            iter = self.liststore[grid].append(treerow)
+            sqlrow += 1
+            row += 1
+        vbox.show_all()
+    #end def addGrid
+
     def refineQuery(self, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
         having = ''
-        
         #print "start of refinequery, playerids:",playerids
         if playerids:
             nametest = str(tuple(playerids))
@@ -262,7 +307,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         pname = "p.name"
         # set flag in self.columns to not show player name column
         #[x for x in self.columns if x[0] == 'pname'][0][1] = False #TODO: fix and reactivate
-            
+
         query = query.replace("<nametest>", nametest)
         query = query.replace("<playerName>", pname)
         query = query.replace("<havingclause>", having)
@@ -283,7 +328,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
                     sitetest = "and tt.siteId IS NULL"
         #print "refinequery, sitetest before its use for replacement:",sitetest
         query = query.replace("<sitetest>", sitetest)
-        
+
         if seats:
             query = query.replace('<seats_test>', 'between ' + str(seats['from']) + ' and ' + str(seats['to']))
             if 'show' in seats and seats['show']:
@@ -302,7 +347,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         #query = query.replace("<gtbigBlind_test>", bbtest)
 
         #query = query.replace("<orderbyhgametypeId>", "")
-        
+
         # process self.detailFilters (a list of tuples)
         flagtest = ''
         #self.detailFilters = [('h.seats', 5, 6)]   # for debug
@@ -327,21 +372,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         return(query)
     #end def refineQuery
 
-    def refreshStats(self, widget, data):
-        self.last_pos = self.stats_vbox.get_position()
-        try: self.stats_vbox.destroy()
-        except AttributeError: pass
-        self.liststore = []
-        self.listcols = []
-        #self.stats_vbox = gtk.VBox(False, 0)
-        self.stats_vbox = gtk.VPaned()
-        self.stats_vbox.show()
-        self.stats_frame.add(self.stats_vbox)
-        self.fillStatsFrame(self.stats_vbox)
-        if self.last_pos > 0:
-            self.stats_vbox.set_position(self.last_pos)
-    #end def refreshStats
-    
+
     def reset_style_render_func(self, treeviewcolumn, cell, model, iter):
         cell.set_property('foreground', None)
     #end def reset_style_render_func

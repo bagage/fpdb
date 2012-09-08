@@ -71,6 +71,7 @@ class DetectInstalledSites():
         self.supportedSites = [ "Full Tilt Poker",
                                 "PartyPoker",
                                 "Merge",
+                                "Winamax",
                                 "PokerStars"]#,
                                 #"Everleaf",
                                 #"Win2day",
@@ -82,7 +83,6 @@ class DetectInstalledSites():
                                 #"Partouche",
                                 #"PKR",
                                 #"iPoker",
-                                #"Winamax",
                                 #"Everest" ]
 
         self.supportedPlatforms = ["Linux", "XP", "Win7"]
@@ -111,6 +111,8 @@ class DetectInstalledSites():
             self.detectPokerStars()
         elif siteToDetect == "Merge":
             self.detectMergeNetwork()
+        elif siteToDetect == "Winamax":
+            self.detectWinamax()
 
         if (self.pathfound and self.herofound):
             self.pathfound = unicode(self.pathfound)
@@ -142,7 +144,22 @@ class DetectInstalledSites():
             pass
 
         return
-        
+
+    def detectWinamax(self):
+        if self.Config.os_family == "Linux":
+            hhp=os.path.expanduser("~/Winamax Poker/accounts/")
+        elif self.Config.os_family == "XP":
+            hhp=os.path.expanduser(PROGRAM_FILES+"\\Winamax\\Poker\\")
+        elif self.Config.os_family == "Win7":
+            hhp=os.path.expanduser(LOCAL_APPDATA+"\\Winamax\\Poker\\")
+        else:
+            return
+
+        if os.path.exists(hhp):
+            self.herofound = os.listdir(hhp)[0]
+            self.pathfound = hhp+self.herofound+"/history"
+        return
+
     def detectPokerStars(self):
 
         if self.Config.os_family == "Linux":
@@ -204,13 +221,14 @@ class DetectInstalledSites():
 
 # Many thanks to Ilithios for the PlayersOnly information
 
-        merge_skin_names = ["CarbonPoker", "PlayersOnly", "BlackChipPoker", "RPMPoker", "HeroPoker"]
-        
+        merge_skin_names = ["CarbonPoker", "PlayersOnly", "BlackChipPoker", "RPMPoker", "HeroPoker",
+                            "PDCPoker", ]
+
         for skin in merge_skin_names:
             if self.Config.os_family == "Linux":
                 hhp=os.path.expanduser("~/.wine/drive_c/Program Files/"+skin+"/history/")
             elif self.Config.os_family == "XP":
-                hhp=os.path.expanduser(PROGRAM_FILES+"\\"+skin+"\\history\\")            
+                hhp=os.path.expanduser(PROGRAM_FILES+"\\"+skin+"\\history\\")
             elif self.Config.os_family == "Win7":
                 hhp=os.path.expanduser(PROGRAM_FILES+"\\"+skin+"\\history\\")
             else:

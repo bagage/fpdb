@@ -22,6 +22,7 @@ import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import sys
 from time import time
 
@@ -101,6 +102,9 @@ class GuiGraphViewer (threading.Thread):
         self.canvas = None
 
         self.exportFile = None
+
+        #update the graph at entry (simulate a «Refresh Graph» click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
 
         self.db.rollback()
 
@@ -230,7 +234,7 @@ class GuiGraphViewer (threading.Thread):
 
             legend = self.ax.legend(handles, labels, loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
             legend.draggable(True)
-            
+
             self.graphBox.add(self.canvas)
             self.canvas.show()
             self.canvas.draw()
@@ -275,7 +279,7 @@ class GuiGraphViewer (threading.Thread):
         tmp = tmp.replace("<game_test>", gametest)
 
         limittest = self.filters.get_limits_where_clause(limits)
-        
+
         q = []
         for n in currencies:
             if currencies[n]:
@@ -339,15 +343,15 @@ class GuiGraphViewer (threading.Thread):
             dia_chooser.set_current_name('fpdbgraph.png')
 
         response = dia_chooser.run()
-        
+
         if response <> gtk.RESPONSE_OK:
             print _('Closed, no graph exported')
             dia_chooser.destroy()
             return
-            
+
         self.exportFile = dia_chooser.get_filename()
         dia_chooser.destroy()
-        
+
         self.fig.savefig(self.exportFile, format="png")
 
         # Display info box to confirm graph created.
@@ -356,8 +360,8 @@ class GuiGraphViewer (threading.Thread):
                                 type=gtk.MESSAGE_INFO,
                                 buttons=gtk.BUTTONS_OK,
                                 message_format=_("Graph created"))
-        diainfo.format_secondary_text(self.exportFile)          
+        diainfo.format_secondary_text(self.exportFile)
         diainfo.run()
         diainfo.destroy()
-        
+
     #end of def exportGraph

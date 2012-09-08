@@ -185,6 +185,7 @@ class iPoker(HandHistoryConverter):
         mg = m.groupdict()
         tourney = False
         #print "DEBUG: m.groupdict(): %s" % mg
+
         if mg['GAME'][:2]=='LH':
             mg['GAME'] = 'Holdem L'
             mg['BB'] = mg['LBB']
