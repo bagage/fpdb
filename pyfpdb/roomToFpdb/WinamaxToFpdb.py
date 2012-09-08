@@ -157,7 +157,6 @@ class Winamax(HandHistoryConverter):
         # Inspect the handText and return the gametype dict
         # gametype dict is: {'limitType': xxx, 'base': xxx, 'category': xxx}
         info = {}
-
         m = self.re_HandInfo.search(handText)
         if not m:
             tmp = handText[0:200]
@@ -196,7 +195,6 @@ class Winamax(HandHistoryConverter):
             else:
                 info['sb'] = str((Decimal(mg['SB'])/2).quantize(Decimal("0.01")))
                 info['bb'] = str(Decimal(mg['SB']).quantize(Decimal("0.01")))
-
         return info
 
     def readHandInfo(self, hand):

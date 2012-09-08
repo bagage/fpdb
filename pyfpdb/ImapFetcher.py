@@ -32,6 +32,7 @@ import Database
 from Exceptions import FpdbParseError
 import SQL
 import Options
+sys.path.insert(0, 'roomToFpdb')
 import PokerStarsSummary
 import FullTiltPokerSummary
 
