@@ -65,6 +65,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         self.main_hbox = gtk.HPaned()
 
         self.filters = TourneyFilters.TourneyFilters(self.db, self.conf, self.sql, display = filters_display)
+
         #self.filters.registerButton1Name(_("_Filters"))
         #self.filters.registerButton1Callback(self.showDetailFilter)
         self.filters.registerButton2Name(_("_Refresh Stats"))
@@ -76,6 +77,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         #     is column displayed, column heading, xalignment, formatting, celltype
         self.columns = [ ["siteName",       True,  _("Site"),    0.0, "%s", "str"]
                        #,["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
+                       ,["tourneyName",     True, _("TourneyName"), 0.0, "%s", "str"]   # true not allowed for this line
                        , ["category",       True,  _("Cat."),    0.0, "%s", "str"]
                        , ["limitType",      True,  _("Limit"),   0.0, "%s", "str"]
                        , ["currency",       True,  _("Curr."),   0.0, "%s", "str"]
@@ -111,7 +113,76 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         gobject.GObject.emit (self.filters.Button2, "clicked");
     #end def __init__
 
+    def get_vbox(self):
+        """returns the vbox of this thread"""
+        return self.main_hbox
+    #end def get_vbox
+
+    def refreshStats(self, widget, data):
+        self.last_pos = self.stats_vbox.get_position()
+        try: self.stats_vbox.destroy()
+        except AttributeError: pass
+        self.liststore = []
+        self.listcols = []
+        #self.stats_vbox = gtk.VBox(False, 0)
+        self.stats_vbox = gtk.VPaned()
+        self.stats_vbox.show()
+        self.stats_frame.add(self.stats_vbox)
+        self.fillStatsFrame(self.stats_vbox)
+        if self.last_pos > 0:
+            self.stats_vbox.set_position(self.last_pos)
+    #end def refreshStats
+
+    def fillStatsFrame(self, vbox):
+        tourneyTypes = self.filters.getTourneyTypes()
+        #tourneys = self.tourneys.getTourneys()
+        sites = self.filters.getSites()
+        heroes = self.filters.getHeroes()
+        siteids = self.filters.getSiteIds()
+        seats  = self.filters.getSeats()
+        dates = self.filters.getDates()
+        sitenos = []
+        playerids = []
+        tourneysName = []
+
+        # Which sites are selected?
+        for site in sites:
+            if sites[site] == True:
+                sitenos.append(siteids[site])
+                _hname = Charset.to_utf8(heroes[site])
+                result = self.db.get_player_id(self.conf, site, _hname)
+                if result is not None:
+                    playerids.append(int(result))
+
+        if not sitenos:
+            #Should probably pop up here.
+            print _("No sites selected - defaulting to PokerStars")
+            sitenos = [2]
+        if not playerids:
+            print _("No player ids found")
+            return
+
+        self.createStatsTable(vbox, tourneyTypes, playerids, sitenos, seats)
+    #end def fillStatsFrame
+
+    def createStatsTable(self, vbox, tourneyTypes, playerids, sitenos, seats):
+        startTime = time()
+        show_detail = True
+
+        # Scrolled window for summary table
+        swin = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
+        swin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        swin.show()
+        vbox.pack1(swin)
+
+        numTourneys = self.filters.getNumTourneys()
+        self.addGrid(swin, 'tourneyPlayerDetailedStats', numTourneys, tourneyTypes, playerids, sitenos, seats)
+
+        print _("Stats page displayed in %4.2f seconds") % (time() - startTime)
+    #end def createStatsTable
+
     def addGrid(self, vbox, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
+
         #print "start of addGrid query", query
         #print "start of addGrid. numTourneys:",numTourneys,"tourneyTypes:", tourneyTypes, "playerids:",playerids
         counter = 0
@@ -124,7 +195,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         print "DEBUG:\n%s" % query
         self.cursor.execute(query)
         result = self.cursor.fetchall()
-        #print "result of the big query in addGrid:",result
+        #~print "result of the big query in addGrid:",result
         colnames = [desc[0] for desc in self.cursor.description]
 
         # pre-fetch some constant values:
@@ -200,61 +271,8 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         vbox.show_all()
     #end def addGrid
 
-    def createStatsTable(self, vbox, tourneyTypes, playerids, sitenos, seats):
-        startTime = time()
-        show_detail = True
-
-        # Scrolled window for summary table
-        swin = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
-        swin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        swin.show()
-        vbox.pack1(swin)
-
-        numTourneys = self.filters.getNumTourneys()
-        self.addGrid(swin, 'tourneyPlayerDetailedStats', numTourneys, tourneyTypes, playerids, sitenos, seats)
-
-        print _("Stats page displayed in %4.2f seconds") % (time() - startTime)
-    #end def createStatsTable
-
-    def fillStatsFrame(self, vbox):
-        tourneyTypes = self.filters.getTourneyTypes()
-        #tourneys = self.tourneys.getTourneys()
-        sites = self.filters.getSites()
-        heroes = self.filters.getHeroes()
-        siteids = self.filters.getSiteIds()
-        seats  = self.filters.getSeats()
-        dates = self.filters.getDates()
-        sitenos = []
-        playerids = []
-
-        # Which sites are selected?
-        for site in sites:
-            if sites[site] == True:
-                sitenos.append(siteids[site])
-                _hname = Charset.to_utf8(heroes[site])
-                result = self.db.get_player_id(self.conf, site, _hname)
-                if result is not None:
-                    playerids.append(int(result))
-
-        if not sitenos:
-            #Should probably pop up here.
-            print _("No sites selected - defaulting to PokerStars")
-            sitenos = [2]
-        if not playerids:
-            print _("No player ids found")
-            return
-
-        self.createStatsTable(vbox, tourneyTypes, playerids, sitenos, seats)
-    #end def fillStatsFrame
-
-    def get_vbox(self):
-        """returns the vbox of this thread"""
-        return self.main_hbox
-    #end def get_vbox
-
     def refineQuery(self, query, numTourneys, tourneyTypes, playerids, sitenos, seats):
         having = ''
-
         #print "start of refinequery, playerids:",playerids
         if playerids:
             nametest = str(tuple(playerids))
@@ -331,20 +349,6 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         return(query)
     #end def refineQuery
 
-    def refreshStats(self, widget, data):
-        self.last_pos = self.stats_vbox.get_position()
-        try: self.stats_vbox.destroy()
-        except AttributeError: pass
-        self.liststore = []
-        self.listcols = []
-        #self.stats_vbox = gtk.VBox(False, 0)
-        self.stats_vbox = gtk.VPaned()
-        self.stats_vbox.show()
-        self.stats_frame.add(self.stats_vbox)
-        self.fillStatsFrame(self.stats_vbox)
-        if self.last_pos > 0:
-            self.stats_vbox.set_position(self.last_pos)
-    #end def refreshStats
 
     def reset_style_render_func(self, treeviewcolumn, cell, model, iter):
         cell.set_property('foreground', None)
