@@ -118,14 +118,14 @@ class GuiBulkImport():
                 ttime = time() - starttime
                 if ttime == 0:
                     ttime = 1
-                    
+
                 completionMessage = _('Bulk import done: Stored: %d, Duplicates: %d, Partial: %d, Errors: %d, Time: %s seconds, Stored/second: %.0f')\
                     % (stored, dups, partial, errs, ttime, (stored+0.0) / ttime)
                 print completionMessage
                 log.info(completionMessage)
 
                 self.importer.clearFileList()
-                
+
                 if self.n_hands_in_db == 0 and stored > 0:
                     self.cb_dropindexes.set_sensitive(True)
                     self.cb_dropindexes.set_active(0)
@@ -271,14 +271,14 @@ class GuiBulkImport():
         for w in self.config.hhcs:
             try:
                 if self.config.supported_sites[w].enabled: # include enabled ones first
-                    print w
+                    #~print w
                     self.cbfilter.append_text(w)
                 else:
                     disabled_sites.append(w)
             except: # self.supported_sites[w] may not exist if hud_config is bad
                 disabled_sites.append(w)
         for w in disabled_sites:                           # then disabled ones
-            print w
+            #~print w
             self.cbfilter.append_text(w)
         self.cbfilter.set_active(0)
         self.table.attach(self.cbfilter, 2, 3, 2, 3, xpadding=10, ypadding=1,
