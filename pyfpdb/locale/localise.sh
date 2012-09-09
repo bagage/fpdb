@@ -1,5 +1,5 @@
 cd ..
-rm *.pyc
+rm *.pyc 2>/dev/null
 
 echo "creating template po file"
 pygettext --output-dir=locale --default-domain=fpdb --output=fpdb-en_GB.pot *.py *.pyw
@@ -55,6 +55,13 @@ msgfmt --output-file=locale/ro/LC_MESSAGES/fpdb.mo locale/fpdb-ro_RO.po
 msgfmt --output-file=locale/ru/LC_MESSAGES/fpdb.mo locale/fpdb-ru_RU.po
 msgfmt --output-file=locale/zh/LC_MESSAGES/fpdb.mo locale/fpdb-zh_CN.po
 
-pocount locale/*.po
-rm locale/*~
+if [ -f /usr/bin/dpkg ]; then
+	status=`dpkg --status translate-toolkit 2>/dev/null | grep "Status:"`
+	if [ -z "`echo "$status" | grep install`" ]; then
+		echo "\nWarning : you need to install translate-toolkit to view stats"
+	else
+		pocount locale/*.po
+	fi
+fi
+rm locale/*~ 2>/dev/null
 rm messages.mo
