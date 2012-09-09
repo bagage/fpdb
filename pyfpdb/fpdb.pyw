@@ -159,7 +159,7 @@ class fpdb:
         #   gtk.STATE_ACTIVE is a displayed, but not selected tab
         #   gtk.STATE_NORMAL is a displayed, selected, focussed tab
         #   gtk.STATE_INSENSITIVE is an inactive tab
-        # Insensitive/base is chosen as the background colour, because 
+        # Insensitive/base is chosen as the background colour, because
         # although not perfect, it seems to be the least instrusive.
         baseNormStyle = eventBox.get_style().base[gtk.STATE_INSENSITIVE]
         try:
@@ -232,7 +232,7 @@ class fpdb:
             'Eric Blade', '_mt', 'sqlcoder', 'Bostik', 'gimick', 'Chaz',
             _('... and others.'), _("See contributors.txt")])
         dia.set_program_name("Free Poker Database (FPDB)")
-        
+
         if (os.name=="posix"):
             os_text=str(os.uname())
         elif (os.name=="nt"):
@@ -240,7 +240,7 @@ class fpdb:
             os_text=("Windows" + " " + str(platform.win32_ver()))
         else:
             os_text="Unknown"
-        
+
         import locale
         nums = [(_('Operating System'), os_text),
                 ('Python',           sys.version[0:3]),
@@ -658,7 +658,7 @@ class fpdb:
         dia.set_deletable(False)
         label = gtk.Label(_("Please select which sites you play on and enter your usernames."))
         dia.vbox.add(label)
-        
+
         self.load_profile()
         site_names = self.config.site_ids
         available_site_names=[]
@@ -668,60 +668,60 @@ class fpdb:
                 available_site_names.append(site_name)
             except KeyError:
                 pass
-        
+
         label = gtk.Label(" ")
         dia.vbox.add(label)
-        
-        column_headers=[_("Site"), _("Screen Name"), _("History Path"), _("Detect")] #TODO , _("Summary Path"), _("HUD")] 
+
+        column_headers=[_("Site"), _("Screen Name"), _("History Path"), _("Detect")] #TODO , _("Summary Path"), _("HUD")]
         #HUD column will contain a button that shows favseat and HUD locations. Make it possible to load screenshot to arrange HUD windowlets.
         table = gtk.Table(rows=len(available_site_names)+1, columns=len(column_headers), homogeneous=False)
         dia.vbox.add(table)
-        
+
         for header_number in range (0, len(column_headers)):
             label = gtk.Label(column_headers[header_number])
             table.attach(label, header_number, header_number+1, 0, 1)
-        
+
         check_buttons=[]
         screen_names=[]
         history_paths=[]
         detector = DetectInstalledSites.DetectInstalledSites()
-        
+
         y_pos=1
         for site_number in range(0, len(available_site_names)):
             check_button = gtk.CheckButton(label=available_site_names[site_number])
             check_button.set_active(self.config.supported_sites[available_site_names[site_number]].enabled)
             table.attach(check_button, 0, 1, y_pos, y_pos+1)
             check_buttons.append(check_button)
-            
+
             entry = gtk.Entry()
             entry.set_text(self.config.supported_sites[available_site_names[site_number]].screen_name)
             table.attach(entry, 1, 2, y_pos, y_pos+1)
             screen_names.append(entry)
-            
+
             entry = gtk.Entry()
             entry.set_text(self.config.supported_sites[available_site_names[site_number]].HH_path)
             table.attach(entry, 2, 3, y_pos, y_pos+1)
             history_paths.append(entry)
-            
+
             if available_site_names[site_number] in detector.supportedSites:
                 button = gtk.Button(_("Detect"))
                 table.attach(button, 3, 4, y_pos, y_pos+1)
                 button.connect("clicked", self.detect_clicked, (detector, available_site_names[site_number], screen_names[site_number], history_paths[site_number]))
-            
+
             y_pos+=1
-        
+
         dia.show_all()
         response = dia.run()
         if (response == gtk.RESPONSE_ACCEPT):
             for site_number in range(0, len(available_site_names)):
                 #print "site %s enabled=%s name=%s" % (available_site_names[site_number], check_buttons[site_number].get_active(), screen_names[site_number].get_text(), history_paths[site_number].get_text())
                 self.config.edit_site(available_site_names[site_number], str(check_buttons[site_number].get_active()), screen_names[site_number].get_text(), history_paths[site_number].get_text())
-            
+
             self.config.save()
             self.reload_config(dia)
-            
+
         dia.destroy()
-    
+
     def detect_clicked(self, widget, data):
         detector = data[0]
         site_name = data[1]
@@ -730,7 +730,7 @@ class fpdb:
         if detector.sitestatusdict[site_name]['detected']:
             entry_screen_name.set_text(detector.sitestatusdict[site_name]['heroname'])
             entry_history_path.set_text(detector.sitestatusdict[site_name]['hhpath'])
-    
+
     def reload_config(self, dia):
         if len(self.nb_tab_names) == 1:
             # only main tab open, reload profile
@@ -741,7 +741,7 @@ class fpdb:
         else:
             if dia: dia.destroy() # destroy prefs before raising warning, otherwise parent is dia rather than self.window
             self.warning_box(_("Updated preferences have not been loaded because windows are open.")+" "+_("Re-start fpdb to load them."))
-    
+
     def addLogText(self, text):
         end_iter = self.logbuffer.get_end_iter()
         self.logbuffer.insert(end_iter, text)
@@ -874,7 +874,7 @@ class fpdb:
                                  ('tourneyviewer', None, _('Tourney _Viewer'), None, 'Tourney Viewer)', self.tab_tourney_viewer_stats),
                                  ('posnstats', None, _('P_ositional Stats (tabulated view)'), _('<control>O'), 'Positional Stats (tabulated view)', self.tab_positional_stats),
                                  ('sessionstats', None, _('Session Stats'), _('<control>S'), 'Session Stats', self.tab_session_stats),
-                                 ('handviewer', None, _('Hand _Viewer'), None, 'Hand Viewer', self.tab_hand_viewer),
+                                 ('handviewer', None, _('Hand Viewer'), None, 'Hand Viewer', self.tab_hand_viewer),
                                  ('database', None, _('_Database')),
                                  ('maintaindbs', None, _('_Maintain Databases'), None, 'Maintain Databases', self.dia_maintain_dbs),
                                  ('createtabs', None, _('Create or Recreate _Tables'), None, 'Create or Recreate Tables ', self.dia_recreate_tables),
@@ -888,7 +888,6 @@ class fpdb:
                                  ('About', None, _('A_bout, License, Copying'), None, 'About the program', self.dia_about),
                                 ])
         actiongroup.get_action('Quit').set_property('short-label', _('_Quit'))
-
         # define keyboard shortcuts alt-1 through alt-0 for switching tabs
         for key in range(10):
             accel_group.connect_group(ord('%s' % key), gtk.gdk.MOD1_MASK, gtk.ACCEL_LOCKED, self.switch_to_tab)
@@ -950,7 +949,7 @@ class fpdb:
             response = diaConfigVersionWarning.run()
             diaConfigVersionWarning.destroy()
             self.config.wrongConfigVersion = False
-            
+
         self.settings = {}
         self.settings['global_lock'] = self.lock
         if (os.sep == "/"):
@@ -1020,7 +1019,7 @@ class fpdb:
             # rollback to make sure any locks are cleared:
             self.db.rollback()
 
-        #If the db-version is out of date, don't validate the config 
+        #If the db-version is out of date, don't validate the config
         # otherwise the end user gets bombarded with false messages
         # about every site not existing
         if not self.db.wrongDbVersion:
@@ -1194,7 +1193,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
         else:
             self.display_config_created_dialogue = False
             self.display_site_preferences = False
-            
+
         # create window, move it to specific location on command line
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         if options.xloc is not None or options.yloc is not None:
@@ -1203,7 +1202,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
             if options.yloc is None:
                 options.yloc = 0
             self.window.move(options.xloc, options.yloc)
-        
+
         # connect to required events
         self.window.connect("delete_event", self.delete_event)
         self.window.connect("destroy", self.destroy)
@@ -1229,7 +1228,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
         menubar = self.get_menu(self.window)
         self.main_vbox.pack_start(menubar, False, True, 0)
         menubar.show()
-        
+
         # create a tab bar
         self.nb = gtk.Notebook()
         self.nb.set_show_tabs(True)
@@ -1242,7 +1241,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
 
         # create the first tab
         self.tab_main_help(None, None)
-        
+
         # determine window visibility from command line options
         if options.minimized:
             self.window.iconify()
@@ -1252,9 +1251,9 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
         if not options.hidden:
             self.window.show()
             self.visible = True     # Flip on
-            
+
         self.load_profile(create_db=True)
-        
+
         if options.initialRun and self.display_site_preferences:
             self.dia_site_preferences(None,None)
             self.display_site_preferences=False
@@ -1291,10 +1290,10 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
 
         self.window.connect('window-state-event', self.window_state_event_cb)
         sys.stderr.write(_("fpdb starting ..."))
-        
+
         if options.autoimport:
             self.tab_auto_import(None)
-            
+
     def addImageToTrayMenu(self, image, event=None):
         menuItem = gtk.ImageMenuItem(image)
         if event is not None:
@@ -1302,7 +1301,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
         self.statusMenu.append(menuItem)
         menuItem.show()
         return menuItem
-        
+
     def addLabelToTrayMenu(self, label, event=None):
         menuItem = gtk.MenuItem(label)
         if event is not None:
@@ -1310,7 +1309,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
         self.statusMenu.append(menuItem)
         menuItem.show()
         return menuItem
-    
+
     def removeFromTrayMenu(self, menuItem):
         menuItem.destroy()
         menuItem = None
