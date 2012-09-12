@@ -353,8 +353,6 @@ class Sql:
                             shortDesc TEXT,
                             ratingTime REAL,
                             handCount int)"""
-
-
         ################################
         # Create Hands
         ################################
@@ -611,6 +609,30 @@ class Sql:
                         added INT,
                         addedCurrency VARCHAR(4))"""
 
+        ################################
+        # Create Bankroll
+        ################################
+        if db_server == 'mysql':
+            self.query['createBankrollTable'] = """CREATE TABLE BankrollsManagement (
+                        id INT UNSIGNED AUTO_INCREMENT NOT NULL, PRIMARY KEY (id),
+                        siteId SMALLINT UNSIGNED NOT NULL, FOREIGN KEY (siteId) REFERENCES Sites(id),
+                        playerId INT UNSIGNED NOT NULL, FOREIGN KEY (playerId) REFERENCES Players(id),
+                        transfer INT,
+                        startTime DATETIME NOT NULL)"""
+        elif db_server == 'postgresql':
+            self.query['createBankrollTable'] = """CREATE TABLE BankrollsManagement (
+                        id SERIAL, PRIMARY KEY (id),
+                        siteId SMALLINT UNSIGNED NOT NULL, FOREIGN KEY (siteId) REFERENCES Sites(id),
+                        playerId INT, FOREIGN KEY (playerId) REFERENCES Players(id),
+                        transfer INT,
+                        startTime timestamp without time zone NOT NULL)"""
+        elif db_server == 'sqlite':
+            self.query['createBankrollTable'] = """CREATE TABLE BankrollsManagement (
+                        id INTEGER PRIMARY KEY,
+                        siteId INT NOT NULL,
+                        playerId INT,
+                        transfer INT,
+                        startTime DATETIME NOT NULL)"""
         ################################
         # Create Tourneys
         ################################
@@ -4742,6 +4764,61 @@ class Sql:
                 order by stats.category, stats.limitType, stats.bigBlindDesc desc
                          <orderbyseats>, cast(stats.PlPosition as smallint)
                 """
+
+        ####################################
+        # Bankroll Graph query
+        ####################################
+        self.query['getAllTransfer'] = """
+            SELECT transfer
+            FROM BankrollsManagement bm
+            INNER JOIN Players pl      ON  (pl.id = bm.playerId)
+            WHERE pl.id in <player_test>
+            AND   pl.siteId in <site_test>
+            AND   ((bm.startTime > '<startdate_test>'
+                    AND bm.startTime < '<enddate_test>')
+                OR bm.startTime is NULL)"""
+
+        self.query['getAllPrintIdSite'] = """
+            SELECT transfer as profit, startTime, 2 as type
+            FROM BankrollsManagement bm
+            INNER JOIN Players pl      ON  (pl.id = bm.playerId)
+            WHERE pl.id in <player_test>
+            AND   pl.siteId in <site_test>
+            AND   ((bm.startTime > '<startdate_test>'
+                    AND bm.startTime < '<enddate_test>')
+                OR bm.startTime is NULL)
+            GROUP BY bm.startTime
+
+            UNION
+            SELECT (coalesce(tp.winnings,0) - coalesce(tt.buyIn,0) - coalesce(tt.fee,0)) as profit, t.startTime, 0 as type
+            FROM TourneysPlayers tp
+            INNER JOIN Players pl      ON  (pl.id = tp.playerId)
+            INNER JOIN Tourneys t         ON  (t.id  = tp.tourneyId)
+            INNER JOIN TourneyTypes tt    ON  (tt.id = t.tourneyTypeId)
+            WHERE pl.id in <player_test>
+            AND   pl.siteId in <site_test>
+            AND   ((t.startTime > '<startdate_test>'
+                    AND t.startTime < '<enddate_test>'))
+            GROUP BY t.startTime, tp.tourneyId, tp.winningsCurrency,
+                     tp.winnings, tp.koCount,
+                     tp.rebuyCount, tp.addOnCount,
+                     tt.buyIn, tt.fee, t.siteTourneyNo
+
+            UNION
+
+            SELECT hp.totalProfit, h.startTime, 1 as type
+            FROM HandsPlayers hp
+            INNER JOIN Players pl      ON  (pl.id = hp.playerId)
+            INNER JOIN Hands h         ON  (h.id  = hp.handId)
+            INNER JOIN Gametypes gt    ON  (gt.id = h.gametypeId)
+            WHERE pl.id in <player_test>
+            AND   pl.siteId in <site_test>
+            AND   h.startTime > '<startdate_test>'
+            AND   h.startTime < '<enddate_test>'
+            AND   hp.tourneysPlayersId IS NULL
+            GROUP BY h.startTime, hp.handId, hp.sawShowdown, hp.totalProfit, hp.allInEV
+
+            ORDER BY startTime"""
 
         ####################################
         # Cash Game Graph query

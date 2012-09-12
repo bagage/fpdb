@@ -31,7 +31,6 @@ import sys
 
 import logging
 
-
 import Importer
 from optparse import OptionParser
 import Configuration

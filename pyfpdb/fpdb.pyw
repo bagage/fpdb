@@ -65,6 +65,7 @@ import GuiTourneyPlayerStats
 import GuiTourneyViewer
 import GuiPositionalStats
 import GuiAutoImport
+import GuiBankrollGraphViewer
 import GuiGraphViewer
 import GuiTourneyGraphViewer
 import GuiSessionViewer
@@ -823,6 +824,7 @@ class fpdb:
                 <menu action="viewers">
                   <menuitem action="autoimp"/>
                   <menuitem action="hud_preferences"/>
+                  <menuitem action="bankrollgraphs"/>
                   <menuitem action="graphs"/>
                   <menuitem action="tourneygraphs"/>
                   <menuitem action="ringplayerstats"/>
@@ -855,37 +857,38 @@ class fpdb:
         actiongroup = gtk.ActionGroup('UIManagerExample')
 
         # Create actions
-        actiongroup.add_actions([('main', None, _('_Main')),
-                                 ('Quit', gtk.STOCK_QUIT, _('_Quit'), None, 'Quit the Program', self.quit),
-                                 ('site_preferences', None, _('_Site Preferences'), None, 'Site Preferences', self.dia_site_preferences),
-                                 ('advanced_preferences', None, _('_Advanced Preferences'), _('<control>F'), 'Edit your preferences', self.dia_advanced_preferences),
-                                 ('import', None, _('_Import')),
-                                 ('bulkimp', None, _('_Bulk Import'), _('<control>B'), 'Bulk Import', self.tab_bulk_import),
-                                 ('tourneyimp', None, _('Tournament _Results Import'), _('<control>R'), 'Tournament Results Import', self.tab_tourney_import),
-                                 ('imapimport', None, _('_Import through eMail/IMAP'), _('<control>I'), 'Import through eMail/IMAP', self.tab_imap_import),
-                                 ('viewers', None, _('_Viewers')),
-                                 ('autoimp', None, _('_Auto Import and HUD'), _('<control>A'), 'Auto Import and HUD', self.tab_auto_import),
-                                 ('hud_preferences', None, _('_HUD Preferences'), _('<control>H'), 'HUD Preferences', self.dia_hud_preferences),
-                                 ('graphs', None, _('_Graphs'), _('<control>G'), 'Graphs', self.tabGraphViewer),
-                                 ('tourneygraphs', None, _('Tourney Graphs'), None, 'TourneyGraphs', self.tabTourneyGraphViewer),
-                                 ('stove', None, _('Stove (preview)'), None, 'Stove', self.tabStove),
-                                 ('ringplayerstats', None, _('Ring _Player Stats'), _('<control>P'), 'Ring Player Stats ', self.tab_ring_player_stats),
-                                 ('tourneyplayerstats', None, _('_Tourney Stats'), _('<control>T'), 'Tourney Stats ', self.tab_tourney_player_stats),
-                                 ('tourneyviewer', None, _('Tourney _Viewer'), None, 'Tourney Viewer)', self.tab_tourney_viewer_stats),
-                                 ('posnstats', None, _('P_ositional Stats (tabulated view)'), _('<control>O'), 'Positional Stats (tabulated view)', self.tab_positional_stats),
-                                 ('sessionstats', None, _('Session Stats'), _('<control>S'), 'Session Stats', self.tab_session_stats),
-                                 ('handviewer', None, _('Hand Viewer'), None, 'Hand Viewer', self.tab_hand_viewer),
-                                 ('database', None, _('_Database')),
-                                 ('maintaindbs', None, _('_Maintain Databases'), None, 'Maintain Databases', self.dia_maintain_dbs),
-                                 ('createtabs', None, _('Create or Recreate _Tables'), None, 'Create or Recreate Tables ', self.dia_recreate_tables),
-                                 ('rebuildhudcache', None, _('Rebuild HUD Cache'), None, 'Rebuild HUD Cache', self.dia_recreate_hudcache),
-                                 ('rebuildindexes', None, _('Rebuild DB Indexes'), None, 'Rebuild DB Indexes', self.dia_rebuild_indexes),
-                                 ('databasestats', None, _('_Statistics'), None, 'View Database Statistics', self.dia_database_stats),
-                                 ('dumptofile', None, _('Dump Database to Textfile (takes ALOT of time)'), None, 'Dump Database to Textfile (takes ALOT of time)', self.dia_dump_db),
-                                 ('help', None, _('_Help')),
-                                 ('Logs', None, _('_Log Messages'), None, 'Log and Debug Messages', self.dia_logs),
-                                 ('Help Tab', None, _('_Help Tab'), None, 'Help Tab', self.tab_main_help),
-                                 ('About', None, _('A_bout, License, Copying'), None, 'About the program', self.dia_about),
+        actiongroup.add_actions([('main',                   None,           _('_Main')                                                                                                                      ),
+                                 ('Quit',                   gtk.STOCK_QUIT, _('_Quit'),                                             None,               'Quit the Program',                                 self.quit),
+                                 ('site_preferences',       None,           _('_Site Preferences'),                                 None,               'Site Preferences',                                 self.dia_site_preferences),
+                                 ('advanced_preferences',   None,           _('_Advanced Preferences'),                             _('<control>F'),    'Edit your preferences',                            self.dia_advanced_preferences),
+                                 ('import',                 None,           _('_Import')                                                                                                                    ),
+                                 ('bulkimp',                None,           _('_Bulk Import'),                                      _('<control>B'),    'Bulk Import',                                      self.tab_bulk_import),
+                                 ('tourneyimp',             None,           _('Tournament _Results Import'),                        _('<control>R'),    'Tournament Results Import',                        self.tab_tourney_import),
+                                 ('imapimport',             None,           _('_Import through eMail/IMAP'),                        _('<control>I'),    'Import through eMail/IMAP',                        self.tab_imap_import),
+                                 ('viewers',                None,           _('_Viewers')                                                                                                                   ),
+                                 ('autoimp',                None,           _('_Auto Import and HUD'),                              _('<control>A'),    'Auto Import and HUD',                              self.tab_auto_import),
+                                 ('hud_preferences',        None,           _('_HUD Preferences'),                                  _('<control>H'),    'HUD Preferences',                                  self.dia_hud_preferences),
+                                 ('bankrollgraphs',         None,           _('_Bankrolls'),                                        _('<control>N'),    'Bankroll Graphs',                                  self.tabBankrollGraphViewer),
+                                 ('graphs',                 None,           _('_Graphs'),                                           _('<control>G'),    'Graphs',                                           self.tabGraphViewer),
+                                 ('tourneygraphs',          None,           _('Tourney Graphs'),                                    _('<control>J'),    'TourneyGraphs',                                    self.tabTourneyGraphViewer),
+                                 ('stove',                  None,           _('Stove (preview)'),                                   None,               'Stove',                                            self.tabStove),
+                                 ('ringplayerstats',        None,           _('Ring _Player Stats'),                                _('<control>P'),    'Ring Player Stats ',                               self.tab_ring_player_stats),
+                                 ('tourneyplayerstats',     None,           _('_Tourney Stats'),                                    _('<control>T'),    'Tourney Stats ',                                   self.tab_tourney_player_stats),
+                                 ('tourneyviewer',          None,           _('Tourney _Viewer'),                                   None,               'Tourney Viewer)',                                  self.tab_tourney_viewer_stats),
+                                 ('posnstats',              None,           _('P_ositional Stats (tabulated view)'),                _('<control>O'),    'Positional Stats (tabulated view)',                self.tab_positional_stats),
+                                 ('sessionstats',           None,           _('Session Stats'),                                     _('<control>S'),    'Session Stats',                                    self.tab_session_stats),
+                                 ('handviewer',             None,           _('Hand Viewer'),                                       None,               'Hand Viewer',                                      self.tab_hand_viewer),
+                                 ('database',               None,           _('_Database')                                                                                                                  ),
+                                 ('maintaindbs',            None,           _('_Maintain Databases'),                               None,               'Maintain Databases',                               self.dia_maintain_dbs),
+                                 ('createtabs',             None,           _('Create or Recreate _Tables'),                        None,               'Create or Recreate Tables ',                       self.dia_recreate_tables),
+                                 ('rebuildhudcache',        None,           _('Rebuild HUD Cache'),                                 None,               'Rebuild HUD Cache',                                self.dia_recreate_hudcache),
+                                 ('rebuildindexes',         None,           _('Rebuild DB Indexes'),                                None,               'Rebuild DB Indexes',                               self.dia_rebuild_indexes),
+                                 ('databasestats',          None,           _('_Statistics'),                                       None,               'View Database Statistics',                         self.dia_database_stats),
+                                 ('dumptofile',             None,           _('Dump Database to Textfile (takes ALOT of time)'),    None,               'Dump Database to Textfile (takes ALOT of time)',   self.dia_dump_db),
+                                 ('help',                   None,           _('_Help')                                                                                                                      ),
+                                 ('Logs',                   None,           _('_Log Messages'),                                     None,               'Log and Debug Messages',                           self.dia_logs),
+                                 ('Help Tab',               None,           _('_Help Tab'),                                         None,               'Help Tab',                                         self.tab_main_help),
+                                 ('About',                  None,           _('A_bout, License, Copying'),                          None,               'About the program',                                self.dia_about),
                                 ])
         actiongroup.get_action('Quit').set_property('short-label', _('_Quit'))
         # define keyboard shortcuts alt-1 through alt-0 for switching tabs
@@ -1155,6 +1158,14 @@ This program is free/libre open source software licensed partially under the AGP
 The Windows installer package includes code licensed under the MIT license.
 You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt and mit.txt in the fpdb installation directory."""))
         self.add_and_display_tab(mh_tab, _("Help"))
+
+    def tabBankrollGraphViewer(self, widget, data=None):
+        """opens a graph viewer tab"""
+        new_gv_thread = GuiBankrollGraphViewer.GuiBankrollGraphViewer(self.sql, self.config, self.window)
+        self.threads.append(new_gv_thread)
+        gv_tab = new_gv_thread.get_vbox()
+        self.add_and_display_tab(gv_tab, _("Bankroll Graphs"))
+
 
     def tabGraphViewer(self, widget, data=None):
         """opens a graph viewer tab"""
