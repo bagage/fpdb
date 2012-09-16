@@ -259,14 +259,14 @@ class GuiAutoImport (threading.Thread):
                         command = "HUD_main.exe"
                         bs = 0
                     elif os.name == 'nt':
-                        path = sys.path[0].replace('\\','\\\\')
+                        path = sys.path[1].replace('\\','\\\\')
                         if win32console.GetConsoleWindow() == 0:
                             command = 'pythonw "'+path+'\\HUD_main.pyw" ' + self.settings['cl_options']
                         else:
                             command = 'python "'+path+'\\HUD_main.pyw" ' + self.settings['cl_options']
                         bs = 0
                     else:
-                        command = os.path.join(sys.path[0], 'HUD_main.pyw')
+                        command = os.path.join(sys.path[1], 'HUD_main.pyw')
                         command = [command, ] + string.split(self.settings['cl_options'])
                         bs = 1
 
