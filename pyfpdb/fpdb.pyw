@@ -1161,7 +1161,7 @@ You can find the full license texts in agpl-3.0.txt, gpl-2.0.txt, gpl-3.0.txt an
 
     def tabBankrollGraphViewer(self, widget, data=None):
         """opens a graph viewer tab"""
-        new_gv_thread = GuiBankrollGraphViewer.GuiBankrollGraphViewer(self.sql, self.config, self.window)
+        new_gv_thread = GuiBankrollGraphViewer.GuiBankrollGraphViewer(self.settings, self.sql, self.config, self.window)
         self.threads.append(new_gv_thread)
         gv_tab = new_gv_thread.get_vbox()
         self.add_and_display_tab(gv_tab, _("Bankroll Graphs"))

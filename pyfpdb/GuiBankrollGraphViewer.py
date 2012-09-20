@@ -54,8 +54,9 @@ except ImportError, inst:
 
 class GuiBankrollGraphViewer (threading.Thread):
 
-    def __init__(self, querylist, config, parent, debug=True):
+    def __init__(self, settings, querylist, config, parent, debug=True):
         """Constructor for GraphViewer"""
+        self.settings = settings
         self.sql = querylist
         self.conf = config
         self.debug = debug
@@ -86,10 +87,21 @@ class GuiBankrollGraphViewer (threading.Thread):
         self.filters.registerButton2Name(_("_Export to File"))
         self.filters.registerButton2Callback(self.exportGraph)
 
+
+        
         self.mainHBox = gtk.HBox(False, 0)
         self.mainHBox.show()
 
         self.leftPanelBox = self.filters.get_vbox()
+
+        #add a button for modify transferts
+        ButtonModifyTransfert=gtk.Button(_("ButtonModifyTransfert"))
+        ButtonModifyTransfert.set_label(_("_Modify Transferts"))
+        ButtonModifyTransfert.connect("clicked", self.modifyTransferts, "clicked")
+        ButtonModifyTransfert.set_sensitive(True)
+        
+        self.filters.mainVBox.pack_start(ButtonModifyTransfert, False)
+        ButtonModifyTransfert.show()
 
         self.hpane = gtk.HPaned()
         self.hpane.pack1(self.leftPanelBox)
@@ -372,3 +384,31 @@ class GuiBankrollGraphViewer (threading.Thread):
         diainfo.destroy()
 
     #end of def exportGraph
+    def modifyTransferts (self, widget, data) :
+        if not self.settings['global_lock'].acquire(wait=False, source="GuiBankrollGraphViewer"):
+            return
+
+        self.transferWindow = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.transferWindow.set_title("Transferts Management")
+        self.transferWindow.set_position(gtk.WIN_POS_CENTER)
+        self.transferWindow.set_transient_for(self.parent)
+        vbox = gtk.VBox(False, 0)
+        hboxAdd = gtk.VBox(False, 0)
+        hboxDelete = gtk.VBox(False, 0)
+        self.transferWindow.add(vbox)
+        vbox.pack_start(hboxAdd)
+        vbox.pack_start(hboxDelete)
+        
+        cal = gtk.Calendar()        
+        
+        buttonAdd = gtk.ToolButton(gtk.STOCK_ADD)
+        buttonDelete = gtk.ToolButton(gtk.STOCK_DELETE)
+        
+        hboxAdd.pack_start(cal, 0)
+        hboxAdd.pack_start(buttonAdd, 0)
+        hboxDelete.pack_start(buttonDelete, 1)
+        self.transferWindow.show_all()
+        
+        return
+        
+    #end of def modifyTransferts
