@@ -15,9 +15,18 @@
 #along with this program. If not, see <http://www.gnu.org/licenses/>.
 #In the "official" distribution you can find the license in agpl-3.0.txt.
 
+
+# Todo list :
+#   - hide the «ID» from transfertTab : it's useless for user, it only serves to delete a row from the database if needed …
+#   - add "in cents (€/$)" on the sum selection in the transfert window
+#   - legend below graph : actual benefit - old transferts, not every ones
+#   - reput the legend on the top corner "actual br && benefice"
+#   - enable negative transfert of $$ (withdraw)
+#   - add currency in table ?
+        
+
 import L10n
 _ = L10n.get_translation()
-
 import threading
 import pygtk
 pygtk.require('2.0')
@@ -33,6 +42,8 @@ from datetime import datetime
 import Database
 import Filters
 import Charset
+
+_COL_ALIAS, _COL_SHOW, _COL_HEADING,_COL_XALIGN,_COL_FORMAT,_COL_TYPE = 0,1,2,3,4,5
 
 try:
     calluse = not 'matplotlib' in sys.modules
@@ -54,9 +65,10 @@ except ImportError, inst:
 
 class GuiBankrollGraphViewer (threading.Thread):
 
-    def __init__(self, settings, querylist, config, parent, debug=True):
+    def __init__(self, settings, db, querylist, config, parent, debug=True):
         """Constructor for GraphViewer"""
         self.settings = settings
+        self.db = db
         self.sql = querylist
         self.conf = config
         self.debug = debug
@@ -64,7 +76,7 @@ class GuiBankrollGraphViewer (threading.Thread):
         #print "start of GraphViewer constructor"
         self.db = Database.Database(self.conf, sql=self.sql)
 
-
+        view = None
         filters_display = { "Heroes"    : True,
                             "Sites"     : True,
                             "Games"     : False,
@@ -97,7 +109,7 @@ class GuiBankrollGraphViewer (threading.Thread):
         #add a button for modify transferts
         ButtonModifyTransfert=gtk.Button(_("ButtonModifyTransfert"))
         ButtonModifyTransfert.set_label(_("_Modify Transferts"))
-        ButtonModifyTransfert.connect("clicked", self.modifyTransferts, "clicked")
+        ButtonModifyTransfert.connect("clicked", self.modifyTransfertsWindow, "clicked")
         ButtonModifyTransfert.set_sensitive(True)
         
         self.filters.mainVBox.pack_start(ButtonModifyTransfert, False)
@@ -121,7 +133,7 @@ class GuiBankrollGraphViewer (threading.Thread):
         gobject.GObject.emit (self.filters.Button1, "clicked");
 
         self.db.rollback()
-
+        #endinit
     def get_vbox(self):
         """returns the vbox of this thread"""
         return self.mainHBox
@@ -288,32 +300,9 @@ class GuiBankrollGraphViewer (threading.Thread):
         print "DEBUG: args are :"
         print names
         print sites
-
-        tmp = self.sql.query['getAllPrintIdSite']
-        print "DEBUG: getData. :"
-        start_date, end_date = self.filters.getDates()
-            #~tp.tourneyId, profit, tp.koCount, tp.rebuyCount, tp.addOnCount, tt.buyIn, tt.fee, t.siteTourneyNo, t.startTime
-
-        tmp2 = self.sql.query['getAllTransfer']
-
-        #Buggered if I can find a way to do this 'nicely' take a list of integers and longs
-        # and turn it into a tuple readale by sql.
-        # [5L] into (5) not (5,) and [5L, 2829L] into (5, 2829)
-        nametest = str(tuple(names))
-        sitetest = str(tuple(sites))
-
-        #Must be a nicer way to deal with tuples of size 1 ie. (2,) - which makes sql barf
-        tmp = tmp.replace("<player_test>", nametest)
-        tmp = tmp.replace("<site_test>", sitetest)
-        tmp = tmp.replace("<startdate_test>", start_date)
-        tmp = tmp.replace("<enddate_test>", end_date)
-        tmp = tmp.replace(",)", ")")
-
-        tmp2 = tmp2.replace("<player_test>", nametest)
-        tmp2 = tmp2.replace("<site_test>", sitetest)
-        tmp2 = tmp2.replace("<startdate_test>", start_date)
-        tmp2 = tmp2.replace("<enddate_test>", end_date)
-        tmp2 = tmp2.replace(",)", ")")
+        
+        tmp = self.rightRequest('getAllPrintIdSite', names, sites)
+        tmp2 = self.rightRequest('getAllTransfer', names, sites)
 
         print "DEBUG: sql query:"
         print tmp
@@ -384,31 +373,256 @@ class GuiBankrollGraphViewer (threading.Thread):
         diainfo.destroy()
 
     #end of def exportGraph
-    def modifyTransferts (self, widget, data) :
+    def modifyTransfertsWindow (self, widget, data) :
+        #if the window is already launched, put it in front
         if not self.settings['global_lock'].acquire(wait=False, source="GuiBankrollGraphViewer"):
             return
 
+        #create the window …
+        #first, check if there is at least one player on database, else quit
+        if (len(self.filters.getHeroes()) == 0):
+            print "No site/hero found, abort"
+            return
+
+        
         self.transferWindow = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.transferWindow.set_title("Transferts Management")
         self.transferWindow.set_position(gtk.WIN_POS_CENTER)
         self.transferWindow.set_transient_for(self.parent)
+        self.transferWindow.connect("destroy", self.release)
         vbox = gtk.VBox(False, 0)
-        hboxAdd = gtk.VBox(False, 0)
-        hboxDelete = gtk.VBox(False, 0)
         self.transferWindow.add(vbox)
+        
+        #####
+        #####
+        #«new transfert» part
+        hboxAdd = gtk.HBox(False, 0)
         vbox.pack_start(hboxAdd)
+        
+        #calendar
+        cal = gtk.Calendar()        
+        vboxSelection = gtk.VBox(False, 0)
+        
+        #hour selection
+        hboxHour = gtk.HBox(False, 0)
+        vboxSelection.pack_start(hboxHour, 0)
+        
+        timeHourPicker = gtk.SpinButton(None, 0, 0);   
+        timeHourPicker.set_increments(1, 6)
+        timeHourPicker.set_range(0, 23)
+        timeHourPicker.set_value(datetime.datetime.now().hour) # current hour
+            
+        timeMinPicker = gtk.SpinButton(None, 0, 0);   
+        timeMinPicker.set_increments(1, 10)
+        timeMinPicker.set_range(0, 59)
+        timeMinPicker.set_value(datetime.datetime.now().minute) # current hour
+        
+        #site/hero selection
+        IDSelection = gtk.combo_box_new_text()
+        
+        for site, hero in self.filters.getHeroes().items():
+            IDSelection.append_text(site + " - " + hero)
+        
+        IDSelection.set_active(0)
+        #amount of virement ? ?
+        amountEntry = gtk.Entry()
+        amountEntry.set_text('100')
+        amountEntry.connect('changed', self.on_changed, 'changed')
+
+        #button add
+        buttonAdd = gtk.ToolButton(gtk.STOCK_ADD)
+        buttonAdd.connect('clicked', self.newTransfer, 'clicked', cal, timeHourPicker, timeMinPicker, IDSelection, amountEntry)
+        buttonAdd.connect('clicked', self.destroyWindow)
+
+
+        hboxAdd.pack_start(cal, 0)
+        hboxAdd.pack_start(vboxSelection, 0)
+        hboxHour.pack_start(timeHourPicker, 0)
+        hboxHour.pack_start(timeMinPicker, 0)
+        vboxSelection.pack_start(IDSelection, 0)
+        vboxSelection.pack_start(amountEntry, 0)
+        vboxSelection.pack_start(buttonAdd, -1)
+                
+        #end of "new transfert" part
+        #####
+        ####
+        
+        ####
+        #start of "delete transfert" part
+        
+        hboxDelete = gtk.HBox(False, 0)
         vbox.pack_start(hboxDelete)
         
-        cal = gtk.Calendar()        
+        #tab to create
+        vboxTab = gtk.VBox(False, 0)
+        self.createTab(vboxTab)
         
-        buttonAdd = gtk.ToolButton(gtk.STOCK_ADD)
         buttonDelete = gtk.ToolButton(gtk.STOCK_DELETE)
+        buttonDelete.connect('clicked', self.deleteTransfer, 'clicked')
+        buttonDelete.connect('clicked', self.destroyWindow)
+
         
-        hboxAdd.pack_start(cal, 0)
-        hboxAdd.pack_start(buttonAdd, 0)
-        hboxDelete.pack_start(buttonDelete, 1)
+        hboxDelete.pack_start(vboxTab, 1)                
+        hboxDelete.pack_start(buttonDelete, 1)                
+        #end of "delete transfert" part
+        ####
+
+
         self.transferWindow.show_all()
-        
         return
+    #end of def modifyTransfertsWindow
+    def release(self, widget, data=None):
+        self.settings['global_lock'].release()
+        self.transferWindow.destroy()
+        return
+    def on_changed(self, widget, data):
+        text = widget.get_text().strip()
+        widget.set_text(''.join([i for i in text if i in '0123456789']))
+    def destroyWindow(self, widget):
+        self.transferWindow.destroy()
+        return
+    def newTransfer(self, widget, data, cal, timeHourPicker, timeMinPicker, IDSelection, amountEntry):
+        year, month, day = cal.get_date()
+        month = month + 1 # because gtk gives it between 0 and 11 ?!
+        hour = timeHourPicker.get_value()
+        minute = timeMinPicker.get_value()
+        (site, separator, hero) = IDSelection.get_active_text().partition(' - ')
+        transfer = amountEntry.get_text()
         
-    #end of def modifyTransferts
+        now = datetime.datetime(year, month, day, int(hour), int(minute), 0)
+
+        #get siteID from siteName (table "sites")
+        self.db.cursor.execute('SELECT id from sites where name LIKE "' + site + '"')
+        siteID = self.db.cursor.fetchall()[0][0]
+        self.db.rollback()
+        
+        #get heroID from heroName and siteID (table "players")
+        self.db.cursor.execute('select id from players where name LIKE "' + hero + '" and siteId = ' + str(siteID))
+        heroID = self.db.cursor.fetchall()[0][0]
+        self.db.rollback()
+        
+        #insert it in the table now
+        query = "INSERT INTO BankrollsManagement(siteId, playerId, transfer, startTime) VALUES (?, ?, ?, ?)"      
+        #~print "DEBUG:\n%s" % query
+        self.db.cursor.execute(query, (siteID, heroID, transfer, now))
+        self.db.commit()
+        self.db.rollback()
+        
+        #update the graph
+        gobject.GObject.emit (self.filters.Button1, "clicked");
+        
+    def deleteTransfer(self, widget, data):
+        #get the active line of the array
+        selected = self.view.get_cursor()[0]
+
+        #if no row selected, abort
+        if selected is None:
+            return
+        #else, retrieve the line ( /!\ rowNumber != Id from the table ),        
+        rowNumber = selected[0]
+        line = self.liststore[0][rowNumber]
+        
+        id = line[0]
+
+        #then delete it from table and refresh graph
+        self.db.cursor.execute('DELETE FROM BankrollsManagement WHERE id=' + str(id))
+        self.db.commit()
+        self.db.rollback()            
+        gobject.GObject.emit (self.filters.Button1, "clicked");
+
+    def createTab(self, vbox) :
+        cols_to_show =  [ ["id",            False, _("ID"),    0.0, "%s", "str"]
+                        , ["siteName",      True,  _("Site"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
+                        , ["playerName",    True,  _("Name"),    0.8, "%s", "str"]   # true not allowed for this line (set in code)
+                        , ["amount",        True,  _("Amount"),    0.0, "%1.0f", "str"]
+                        , ["date",          True, _("Date"),       0.0, "%s", "str"]]
+
+        self.liststore=[]
+        self.liststore.append( gtk.ListStore(*([str] * len(cols_to_show))) )
+        self.view = gtk.TreeView(model=self.liststore[0])
+        
+        self.view.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
+        #vbox.pack_start(view, expand=False, padding=3)
+        vbox.add(self.view)
+        textcell = gtk.CellRendererText()
+        textcell50 = gtk.CellRendererText()
+        textcell50.set_property('xalign', 0.5)
+        numcell = gtk.CellRendererText()
+        numcell.set_property('xalign', 1.0)
+        
+        listcols = []
+        listcols.append( [] )
+        # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
+        for i, col in enumerate(cols_to_show):
+            listcols[0].append(gtk.TreeViewColumn(col[_COL_HEADING]))
+
+            self.view.append_column(listcols[0][i])
+            if col[_COL_FORMAT] == '%s':
+                if col[_COL_XALIGN] == 0.0:
+                    listcols[0][i].pack_start(textcell, expand=True)
+                    listcols[0][i].add_attribute(textcell, 'text', i)
+                    cellrend = textcell
+                else:
+                    listcols[0][i].pack_start(textcell50, expand=True)
+                    listcols[0][i].add_attribute(textcell50, 'text', i)
+                    cellrend = textcell50
+                listcols[0][i].set_expand(True)
+            else:
+                listcols[0][i].pack_start(numcell, expand=True)
+                listcols[0][i].add_attribute(numcell, 'text', i)
+                listcols[0][i].set_expand(True)
+                cellrend = numcell
+
+        query = self.sql.query['getAllTransferInformations']
+
+        #~print "DEBUG:\n%s" % query
+        self.db.cursor.execute(query)
+        
+        result = self.db.cursor.fetchall()
+        #~print "result of the big query in addGrid:",result
+        colnames = [desc[0] for desc in self.db.cursor.description]
+
+
+
+        #~for i in range(0, len(tab))
+        rows = len(result) # +1 for title row
+        counter = 0
+        row = 0
+        sqlrow = 0
+        while sqlrow < rows:
+            treerow = []
+            for col,column in enumerate(cols_to_show):
+                if column[_COL_ALIAS] in colnames:
+                    value = result[sqlrow][colnames.index(column[_COL_ALIAS])]
+                else:
+                    value = 111
+
+                if value != None and value != -999:
+                    treerow.append(column[_COL_FORMAT] % value)
+                else:
+                    treerow.append(' ')
+            #print "addGrid, just before end of big for. grid:",grid,"treerow:",treerow
+            iter = self.liststore[0].append(treerow)
+            sqlrow += 1
+            row += 1
+        vbox.show_all()
+        
+    def rightRequest(self, request, names, sites):
+        tmp = self.sql.query[request]
+        print "DEBUG: getData. :"
+        start_date, end_date = self.filters.getDates()
+
+        #Buggered if I can find a way to do this 'nicely' take a list of integers and longs
+        # and turn it into a tuple readale by sql.
+        # [5L] into (5) not (5,) and [5L, 2829L] into (5, 2829)
+        nametest = str(tuple(names))
+        sitetest = str(tuple(sites))
+
+        #Must be a nicer way to deal with tuples of size 1 ie. (2,) - which makes sql barf
+        tmp = tmp.replace("<player_test>", nametest)
+        tmp = tmp.replace("<site_test>", sitetest)
+        tmp = tmp.replace("<startdate_test>", start_date)
+        tmp = tmp.replace("<enddate_test>", end_date)
+        tmp = tmp.replace(",)", ")")
+        
+        return tmp

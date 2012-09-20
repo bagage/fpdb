@@ -628,7 +628,7 @@ class Sql:
                         startTime timestamp without time zone NOT NULL)"""
         elif db_server == 'sqlite':
             self.query['createBankrollTable'] = """CREATE TABLE BankrollsManagement (
-                        id INTEGER PRIMARY KEY,
+                        id INTEGER PRIMARY KEY NOT NULL,
                         siteId INT NOT NULL,
                         playerId INT,
                         transfer INT,
@@ -4768,6 +4768,14 @@ class Sql:
         ####################################
         # Bankroll Graph query
         ####################################
+        self.query['getIdFromTheRest'] = """
+            SELECT id
+            FROM BankrollsManagement bm
+            WHERE playerid = <player_test>
+            AND   siteId = <site_test>
+            AND   transfer = <transfer_test>
+            AND   startTime = '<startdate_test>'"""
+
         self.query['getAllTransfer'] = """
             SELECT transfer
             FROM BankrollsManagement bm
@@ -4778,6 +4786,13 @@ class Sql:
                     AND bm.startTime < '<enddate_test>')
                 OR bm.startTime is NULL)"""
 
+        self.query['getAllTransferInformations'] = """
+            SELECT  b.id, p.name as playerName, s.name as siteName, b.transfer as amount, b.startTime as date
+            FROM BankrollsManagement b, Players p, Sites s
+            WHERE b.playerId = p.id
+            AND b.siteid=p.siteId
+            AND b.siteId=s.id"""
+                
         self.query['getAllPrintIdSite'] = """
             SELECT transfer as profit, startTime, 2 as type
             FROM BankrollsManagement bm
