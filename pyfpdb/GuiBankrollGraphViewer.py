@@ -18,13 +18,10 @@
 
 # Todo list :
 #   - hide the «ID» from transfertTab : it's useless for user, it only serves to delete a row from the database if needed …
-#   - add "in cents (€/$)" on the sum selection in the transfert window
-#   - legend below graph : actual benefit - old transferts, not every ones
-#   - reput the legend on the top corner "actual br && benefice"
-#   - enable negative transfert of $$ (withdraw)
 #   - add currency in table ?
-# performance ?
-        
+# To test :
+#   - performance with huge database ?
+
 
 import L10n
 _ = L10n.get_translation()
@@ -39,7 +36,7 @@ import traceback
 from time import *
 from datetime import datetime
 #import pokereval
-
+import re
 import Database
 import Filters
 import Charset
@@ -100,8 +97,21 @@ class GuiBankrollGraphViewer (threading.Thread):
         self.filters.registerButton2Name(_("_Export to File"))
         self.filters.registerButton2Callback(self.exportGraph)
 
+        numeric_const_pattern = r"""
+            [-+]? # optional sign
+            (?:
+                (?: \d* \. \d+ ) # .1 .12 .123 etc 9.1 etc 98.1 etc
+                |
+                (?: \d+ \.? ) # 1. 12. 123. etc 1 12 123 etc
+            )
+            # followed by optional exponent part if desired
+            (?: [Ee] [+-]? \d+ ) ?
+            """
+        self.rx = re.compile(numeric_const_pattern, re.VERBOSE)
 
-        
+
+
+
         self.mainHBox = gtk.HBox(False, 0)
         self.mainHBox.show()
 
@@ -112,7 +122,7 @@ class GuiBankrollGraphViewer (threading.Thread):
         ButtonTransfert.set_label(_("_Modify Transferts"))
         ButtonTransfert.connect("clicked", self.transfertsWindow, "clicked")
         ButtonTransfert.set_sensitive(True)
-        
+
         self.filters.mainVBox.pack_start(ButtonTransfert, False)
         ButtonTransfert.show()
 
@@ -190,14 +200,14 @@ class GuiBankrollGraphViewer (threading.Thread):
 
         #Get graph data from DB
         starttime = time()
-        (green, dates, transfer, transferType) = self.getData(playerids, sitenos)
+        (green, dates, transfersAmount, transfersDate, transferType) = self.getData(playerids, sitenos)
         print _("Graph generated in: %s") %(time() - starttime)
 
 
         #Set axis labels and grid overlay properites
         self.ax.set_ylabel("$", fontsize = 12)
         self.ax.grid(color='g', linestyle=':', linewidth=0.2)
-        
+
         if green == None or green == []:
             self.ax.set_title(_("No Data for Player(s) Found"))
             green = ([    0.,     0.,     0.,     0.,   500.,  1000.,   900.,   800.,
@@ -256,22 +266,15 @@ class GuiBankrollGraphViewer (threading.Thread):
                         #~dates[i] = datetime.datetime.strptime(dates[i], "%Y-%m-%d %H:%M:%S")
 
             for i in range(0,  len(green)-1):
-                beneficeSinceStart=green[i+1]-self.totalTransfer(dates[i+1], transfer)
+                beneficeSinceStart=green[i+1]-self.totalTransfer(dates[i+1], transfersAmount, transfersDate)
                 mycolor = self.color(transferType[i+1], beneficeSinceStart)
 
                 self.ax.plot([i,i+1], [green[i],green[i+1]], color=mycolor)
                 #show date and gain only 5 times on X axis
                 if (i % (len(green)/5) == 1):
-                    gain=""
-                    if (beneficeSinceStart==0):
-                        gain="="
-                    else:
-                        if (beneficeSinceStart>0):
-                            gain="+"
-                        gain += str(beneficeSinceStart)
-                    
                     #the gain since start at this time
-                    self.ax.annotate(gain, xy=(i, 0), color=mycolor, xycoords=('data', 'axes fraction'),
+                    if (mycolor=='cyan'): mycolor='green'
+                    self.ax.annotate('%.2f' % beneficeSinceStart, xy=(i, 0), color=mycolor, xycoords=('data', 'axes fraction'),
                     xytext=(0, 18), textcoords='offset points', va='top', ha='left')
 
                     #and show the date too if enabled
@@ -283,15 +286,15 @@ class GuiBankrollGraphViewer (threading.Thread):
 
             #plot the last one and show the top corner legend
             i = len(green)-1
-            
+
             bankroll = float(green[i])
             profit = bankroll
-            if len(transfer)>0:
-                profit -= transfer[len(transfer)-1][0]
-                
+            if len(transfersAmount)>0:
+                profit -= transfersAmount[len(transfersAmount)-1]
+
             self.ax.plot([i,i+1], [green[i],green[i]], color=self.color(transferType[i], beneficeSinceStart),
                 label=_('Bankroll') + ': \$%.2f' % bankroll + '\n' + _('Profit') + ': \$%.2f' % profit)
-            
+
             legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
             legend.draggable(True)
 
@@ -299,32 +302,32 @@ class GuiBankrollGraphViewer (threading.Thread):
             self.canvas.show()
             self.canvas.draw()
     #end of def showClicked
-    
+
     #return total cash from transfer until «date»
-    def totalTransfer(self, date, transferts):
+    def totalTransfer(self, date, amounts, transfersDate):
         #~print transferts
-        if len(transferts) == 0 or (date < transferts[0][1]): 
+        if len(amounts) == 0 or (date < transfersDate[0]):
             return 0
-        
+
         i=0
-        while (i < len(transferts)-1 and date > transferts[i][1]):
+        while (i < len(amounts)-1 and date > transfersDate[i]):
             i = i + 1
-        return transferts[i][0]
-    
+        return amounts[i]
+
     def color(self, typ, gain):
         # 0:play, 1:transfert
         if typ == 1:
-            return 'black'
+            return 'cyan'
         elif gain < 0:
             return 'red'
         else:
             return 'green'
-    
+
     def getData(self, names, sites):
         print "DEBUG: args are :"
         print names
         print sites
-        
+
         tmp = self.rightRequest('getAllPrintIdSite', names, sites)
         tmp2 = self.rightRequest('getAllTransfer', names, sites)
 
@@ -343,8 +346,10 @@ class GuiBankrollGraphViewer (threading.Thread):
 
         green = map(lambda x:float(x[0]), winnings)
         dates = map(lambda x:x[1], winnings)
-        transferType = map(lambda x:x[2], winnings)
-        
+        typeOf = map(lambda x:x[2], winnings)
+        transferAmounts = map(lambda x:x[0], transfers)
+        transferDates = map(lambda x:x[1], transfers)
+
         #blue  = map(lambda x: float(x[1]) if x[2] == True  else 0.0, winnings)
         #red   = map(lambda x: float(x[1]) if x[2] == False else 0.0, winnings)
         greenline = cumsum(green)
@@ -352,8 +357,8 @@ class GuiBankrollGraphViewer (threading.Thread):
         #blueline  = cumsum(blue)
         #redline   = cumsum(red)
 
-        #~transfers[0] = cumsum(transfers[0])
-        return (greenline/100., dates, transfers, transferType)
+        transferAmounts = cumsum(transferAmounts)
+        return (greenline/100., dates, transferAmounts, transferDates, typeOf)
 
     def exportGraph (self, widget, data):
         if self.fig is None:
@@ -407,7 +412,7 @@ class GuiBankrollGraphViewer (threading.Thread):
             print "No site/hero found, abort"
             return
 
-        
+
         self.transferWindow = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.transferWindow.set_title("Transferts Management")
         self.transferWindow.set_position(gtk.WIN_POS_CENTER)
@@ -415,41 +420,50 @@ class GuiBankrollGraphViewer (threading.Thread):
         self.transferWindow.connect("destroy", self.release)
         vbox = gtk.VBox(False, 0)
         self.transferWindow.add(vbox)
-        
+
         #####
         #####
         #«new transfert» part
-        hboxAdd = gtk.HBox(False, 0)
+        hboxAdd = gtk.HBox(True, 0)
         vbox.pack_start(hboxAdd)
-        
+
         #calendar
-        cal = gtk.Calendar()        
+        cal = gtk.Calendar()
         vboxSelection = gtk.VBox(False, 0)
-        
+
         #hour selection
+        hourLabel = gtk.Label(_('Select hour:'))
+        hourLabel.set_alignment(xalign=0.0, yalign=0.5)
+
         hboxHour = gtk.HBox(False, 0)
-        vboxSelection.pack_start(hboxHour, 0)
-        
-        timeHourPicker = gtk.SpinButton(None, 0, 0);   
+
+        timeHourPicker = gtk.SpinButton(None, 0, 0);
         timeHourPicker.set_increments(1, 6)
         timeHourPicker.set_range(0, 23)
         timeHourPicker.set_value(datetime.datetime.now().hour) # current hour
-            
-        timeMinPicker = gtk.SpinButton(None, 0, 0);   
+
+        timeMinPicker = gtk.SpinButton(None, 0, 0);
         timeMinPicker.set_increments(1, 10)
         timeMinPicker.set_range(0, 59)
         timeMinPicker.set_value(datetime.datetime.now().minute) # current hour
-        
+
         #site/hero selection
+        IDLabel = gtk.Label(_('Site - hero:'))
+        IDLabel.set_alignment(xalign=0.0, yalign=0.5)
+
         IDSelection = gtk.combo_box_new_text()
-        
+
         for site, hero in self.filters.getHeroes().items():
             IDSelection.append_text(site + " - " + hero)
-        
+
         IDSelection.set_active(0)
-        #amount of virement ? ?
+        #amount of virement
+        amountLabel = gtk.Label(_('Tranfert amount ($):'))
+        amountLabel.set_alignment(xalign=0.0, yalign=0.5)
+
+
         amountEntry = gtk.Entry()
-        amountEntry.set_text('100')
+        amountEntry.set_text('10.00')
         amountEntry.connect('changed', self.on_changed, 'changed')
 
         #button add
@@ -457,35 +471,38 @@ class GuiBankrollGraphViewer (threading.Thread):
         buttonAdd.connect('clicked', self.newTransfer, 'clicked', cal, timeHourPicker, timeMinPicker, IDSelection, amountEntry)
         buttonAdd.connect('clicked', self.destroyWindow)
 
-
         hboxAdd.pack_start(cal, 0)
         hboxAdd.pack_start(vboxSelection, 0)
+        vboxSelection.pack_start(hourLabel, 0)
+        vboxSelection.pack_start(hboxHour, 0)
         hboxHour.pack_start(timeHourPicker, 0)
         hboxHour.pack_start(timeMinPicker, 0)
+        vboxSelection.pack_start(IDLabel, 0)
         vboxSelection.pack_start(IDSelection, 0)
+        vboxSelection.pack_start(amountLabel, 0)
         vboxSelection.pack_start(amountEntry, 0)
         vboxSelection.pack_start(buttonAdd, -1)
-                
+
         #end of "new transfert" part
         #####
         ####
-        
+
         ####
         #start of "delete transfert" part
-        
+
         hboxDelete = gtk.HBox(False, 0)
         vbox.pack_start(hboxDelete)
-        
+
         #tab to create
         vboxTab = gtk.VBox(False, 0)
         self.createTab(vboxTab)
-        
+
         buttonDelete = gtk.ToolButton(gtk.STOCK_DELETE)
         buttonDelete.connect('clicked', self.deleteTransfer, 'clicked')
 
-        
-        hboxDelete.pack_start(vboxTab, 1)                
-        hboxDelete.pack_start(buttonDelete, 1)                
+
+        hboxDelete.pack_start(vboxTab, 1)
+        hboxDelete.pack_start(buttonDelete, 1)
         #end of "delete transfert" part
         ####
 
@@ -498,8 +515,15 @@ class GuiBankrollGraphViewer (threading.Thread):
         self.transferWindow.destroy()
         return
     def on_changed(self, widget, data):
-        text = widget.get_text().strip()
-        widget.set_text(''.join([i for i in text if i in '0123456789']))
+        #~text = widget.get_text().strip()
+        #~widget.set_text(''.join([i for i in text if i in '0123456789']))
+        entry_text = widget.get_text()
+        newtext = self.rx.findall(entry_text)
+        if len(newtext) :
+            widget.set_text(newtext[0])
+        else:
+            widget.set_text("")
+
     def destroyWindow(self, widget):
         self.transferWindow.destroy()
         return
@@ -509,30 +533,30 @@ class GuiBankrollGraphViewer (threading.Thread):
         hour = timeHourPicker.get_value()
         minute = timeMinPicker.get_value()
         (site, separator, hero) = IDSelection.get_active_text().partition(' - ')
-        transfer = amountEntry.get_text()
-        
+        transfer = float(amountEntry.get_text())
+
         now = datetime.datetime(year, month, day, int(hour), int(minute), 0)
 
         #get siteID from siteName (table "sites")
         self.db.cursor.execute('SELECT id from sites where name LIKE "' + site + '"')
         siteID = self.db.cursor.fetchall()[0][0]
         self.db.rollback()
-        
+
         #get heroID from heroName and siteID (table "players")
         self.db.cursor.execute('select id from players where name LIKE "' + hero + '" and siteId = ' + str(siteID))
         heroID = self.db.cursor.fetchall()[0][0]
         self.db.rollback()
-        
+
         #insert it in the table now
-        query = "INSERT INTO BankrollsManagement(siteId, playerId, transfer, startTime) VALUES (?, ?, ?, ?)"      
+        query = "INSERT INTO BankrollsManagement(siteId, playerId, transfer, startTime) VALUES (?, ?, ?, ?)"
         #~print "DEBUG:\n%s" % query
-        self.db.cursor.execute(query, (siteID, heroID, transfer, now))
+        self.db.cursor.execute(query, (siteID, heroID, int(transfer*100), now))
         self.db.commit()
         self.db.rollback()
-        
+
         #update the graph
         gobject.GObject.emit (self.filters.Button1, "clicked");
-        
+
     def deleteTransfer(self, widget, data):
         #get the active line of the array
         selected = self.view.get_cursor()[0]
@@ -540,17 +564,17 @@ class GuiBankrollGraphViewer (threading.Thread):
         #if no row selected, abort
         if selected is None:
             return
-        #else, retrieve the line ( /!\ rowNumber != Id from the table ),        
+        #else, retrieve the line ( /!\ rowNumber != Id from the table ),
         rowNumber = selected[0]
         line = self.liststore[0][rowNumber]
-        
+
         id = line[0]
 
         #then delete it from table and refresh graph
         self.db.cursor.execute('DELETE FROM BankrollsManagement WHERE id=' + str(id))
         self.db.commit()
-        self.db.rollback()            
-        
+        self.db.rollback()
+
         #destroy the window
         self.destroyWindow(widget)
         gobject.GObject.emit (self.filters.Button1, "clicked");
@@ -559,13 +583,13 @@ class GuiBankrollGraphViewer (threading.Thread):
         cols_to_show =  [ ["id",            False, _("ID"),    0.0, "%s", "str"]
                         , ["siteName",      True,  _("Site"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
                         , ["playerName",    True,  _("Name"),    0.8, "%s", "str"]   # true not allowed for this line (set in code)
-                        , ["amount",        True,  _("Amount"),    0.0, "%1.0f", "str"]
+                        , ["amount",        True,  _("Amount"),    0.0, "%0.2f", "str"]
                         , ["date",          True, _("Date"),       0.0, "%s", "str"]]
 
         self.liststore=[]
         self.liststore.append( gtk.ListStore(*([str] * len(cols_to_show))) )
         self.view = gtk.TreeView(model=self.liststore[0])
-        
+
         self.view.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
         #vbox.pack_start(view, expand=False, padding=3)
         vbox.add(self.view)
@@ -574,7 +598,7 @@ class GuiBankrollGraphViewer (threading.Thread):
         textcell50.set_property('xalign', 0.5)
         numcell = gtk.CellRendererText()
         numcell.set_property('xalign', 1.0)
-        
+
         listcols = []
         listcols.append( [] )
         # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
@@ -602,7 +626,7 @@ class GuiBankrollGraphViewer (threading.Thread):
 
         #~print "DEBUG:\n%s" % query
         self.db.cursor.execute(query)
-        
+
         result = self.db.cursor.fetchall()
         #~print "result of the big query in addGrid:",result
         colnames = [desc[0] for desc in self.db.cursor.description]
@@ -618,7 +642,11 @@ class GuiBankrollGraphViewer (threading.Thread):
             treerow = []
             for col,column in enumerate(cols_to_show):
                 if column[_COL_ALIAS] in colnames:
-                    value = result[sqlrow][colnames.index(column[_COL_ALIAS])]
+                    if column[_COL_ALIAS] == 'amount':
+                        #convert $ cents to $
+                        value = result[sqlrow][colnames.index(column[_COL_ALIAS])]/100.
+                    else:
+                        value = result[sqlrow][colnames.index(column[_COL_ALIAS])]
                 else:
                     value = 111
 
@@ -631,7 +659,7 @@ class GuiBankrollGraphViewer (threading.Thread):
             sqlrow += 1
             row += 1
         vbox.show_all()
-        
+
     def rightRequest(self, request, names, sites):
         tmp = self.sql.query[request]
         print "DEBUG: getData. :"
@@ -649,5 +677,5 @@ class GuiBankrollGraphViewer (threading.Thread):
         tmp = tmp.replace("<startdate_test>", start_date)
         tmp = tmp.replace("<enddate_test>", end_date)
         tmp = tmp.replace(",)", ")")
-        
+
         return tmp
