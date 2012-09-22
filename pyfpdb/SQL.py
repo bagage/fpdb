@@ -4777,7 +4777,7 @@ class Sql:
             AND   startTime = '<startdate_test>'"""
 
         self.query['getAllTransfer'] = """
-            SELECT transfer
+            SELECT transfer/100., startTime
             FROM BankrollsManagement bm
             INNER JOIN Players pl      ON  (pl.id = bm.playerId)
             WHERE pl.id in <player_test>
@@ -4794,7 +4794,7 @@ class Sql:
             AND b.siteId=s.id"""
                 
         self.query['getAllPrintIdSite'] = """
-            SELECT transfer as profit, startTime, 2 as type
+            SELECT transfer as profit, startTime, 1 as type
             FROM BankrollsManagement bm
             INNER JOIN Players pl      ON  (pl.id = bm.playerId)
             WHERE pl.id in <player_test>
@@ -4821,7 +4821,7 @@ class Sql:
 
             UNION
 
-            SELECT hp.totalProfit, h.startTime, 1 as type
+            SELECT hp.totalProfit, h.startTime, 0 as type
             FROM HandsPlayers hp
             INNER JOIN Players pl      ON  (pl.id = hp.playerId)
             INNER JOIN Hands h         ON  (h.id  = hp.handId)
@@ -4831,6 +4831,7 @@ class Sql:
             AND   h.startTime > '<startdate_test>'
             AND   h.startTime < '<enddate_test>'
             AND   hp.tourneysPlayersId IS NULL
+            AND   hp.totalprofit != 0
             GROUP BY h.startTime, hp.handId, hp.sawShowdown, hp.totalProfit, hp.allInEV
 
             ORDER BY startTime"""

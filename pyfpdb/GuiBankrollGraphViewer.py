@@ -23,6 +23,7 @@
 #   - reput the legend on the top corner "actual br && benefice"
 #   - enable negative transfert of $$ (withdraw)
 #   - add currency in table ?
+# performance ?
         
 
 import L10n
@@ -106,14 +107,14 @@ class GuiBankrollGraphViewer (threading.Thread):
 
         self.leftPanelBox = self.filters.get_vbox()
 
-        #add a button for modify transferts
-        ButtonModifyTransfert=gtk.Button(_("ButtonModifyTransfert"))
-        ButtonModifyTransfert.set_label(_("_Modify Transferts"))
-        ButtonModifyTransfert.connect("clicked", self.modifyTransfertsWindow, "clicked")
-        ButtonModifyTransfert.set_sensitive(True)
+        #add a button to modify transferts
+        ButtonTransfert=gtk.Button(_("ButtonTransfert"))
+        ButtonTransfert.set_label(_("_Modify Transferts"))
+        ButtonTransfert.connect("clicked", self.transfertsWindow, "clicked")
+        ButtonTransfert.set_sensitive(True)
         
-        self.filters.mainVBox.pack_start(ButtonModifyTransfert, False)
-        ButtonModifyTransfert.show()
+        self.filters.mainVBox.pack_start(ButtonTransfert, False)
+        ButtonTransfert.show()
 
         self.hpane = gtk.HPaned()
         self.hpane.pack1(self.leftPanelBox)
@@ -189,13 +190,14 @@ class GuiBankrollGraphViewer (threading.Thread):
 
         #Get graph data from DB
         starttime = time()
-        (green, datesXAbs, totalTransfer, transferType) = self.getData(playerids, sitenos)
+        (green, dates, transfer, transferType) = self.getData(playerids, sitenos)
         print _("Graph generated in: %s") %(time() - starttime)
 
 
         #Set axis labels and grid overlay properites
         self.ax.set_ylabel("$", fontsize = 12)
         self.ax.grid(color='g', linestyle=':', linewidth=0.2)
+        
         if green == None or green == []:
             self.ax.set_title(_("No Data for Player(s) Found"))
             green = ([    0.,     0.,     0.,     0.,   500.,  1000.,   900.,   800.,
@@ -233,37 +235,32 @@ class GuiBankrollGraphViewer (threading.Thread):
             #nothing to draw
             if (len(green) == 0):
                 return
-            #Get the dates of tourneys
-            #if first tourney has no date, get the most ancient date and assume it's his one
-            if datesXAbs[0] is None:
+            #Get the dates of the action (transfert / cg hand / tourney)
+            #if it has no date, get the most ancient date and assume it's its one
+            if dates[0] is None:
                 i = 1
-                while i < len(datesXAbs) and type(datesXAbs[i]) is None:
+                while i < len(dates) and type(dates[i]) is None:
                     i = i+1
-                if i == len(datesXAbs):
+                if i == len(dates):
                     print "Wow wow wow : no dates in your whole database"
                     useDates = False
                 else:
-                    datesXAbs[0] = datesXAbs[i]
+                    dates[0] = dates[i]
 
-            #no convert date to dateTime format
+            #now, convert date to dateTime format
             if useDates:
-                for i in range(0, len(datesXAbs)):
-                    if datesXAbs[i] is None:
-                        datesXAbs[i] = datesXAbs[i-1]
-                    else:
-                        datesXAbs[i] = datetime.datetime.strptime(datesXAbs[i], "%Y-%m-%d %H:%M:%S")
-
-                    datesXAbs[i] = datesXAbs[i].strftime('%d/%m')
-
-            colors = ['red', 'green', 'orange', 'green', 'blue', 'grey']
+                for i in range(0, len(dates)):
+                    if dates[i] is None:
+                        dates[i] = dates[i-1]
+                    #~else:
+                        #~dates[i] = datetime.datetime.strptime(dates[i], "%Y-%m-%d %H:%M:%S")
 
             for i in range(0,  len(green)-1):
-                beneficeSinceStart=green[i+1]-totalTransfer
-                mycolor = transferType[i]*2
-                if beneficeSinceStart >= 0:
-                    mycolor = mycolor+1
+                beneficeSinceStart=green[i+1]-self.totalTransfer(dates[i+1], transfer)
+                mycolor = self.color(transferType[i+1], beneficeSinceStart)
 
-                self.ax.plot([i,i+1], [green[i],green[i+1]], color=colors[mycolor])
+                self.ax.plot([i,i+1], [green[i],green[i+1]], color=mycolor)
+                #show date and gain only 5 times on X axis
                 if (i % (len(green)/5) == 1):
                     gain=""
                     if (beneficeSinceStart==0):
@@ -272,30 +269,57 @@ class GuiBankrollGraphViewer (threading.Thread):
                         if (beneficeSinceStart>0):
                             gain="+"
                         gain += str(beneficeSinceStart)
-
-                    self.ax.annotate(gain, xy=(i, 0), color=colors[mycolor], xycoords=('data', 'axes fraction'),
+                    
+                    #the gain since start at this time
+                    self.ax.annotate(gain, xy=(i, 0), color=mycolor, xycoords=('data', 'axes fraction'),
                     xytext=(0, 18), textcoords='offset points', va='top', ha='left')
 
+                    #and show the date too if enabled
                     if useDates:
-                        self.ax.annotate(datesXAbs[i], xy=(i, 0), xycoords=('data', 'axes fraction'),
+                        dateMMDD=datetime.datetime.strptime(dates[i], "%Y-%m-%d %H:%M:%S").strftime('%d/%m')
+                        self.ax.annotate(dateMMDD, xy=(i, 0), xycoords=('data', 'axes fraction'),
                         xytext=(0, -18), textcoords='offset points', va='top', ha='left')
 
 
-
-
-
-            #~self.ax.axhline(0, color='black', lw=2)
-
-            #~legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
-            #~legend.draggable(True)
+            #plot the last one and show the top corner legend
+            i = len(green)-1
+            
+            bankroll = float(green[i])
+            profit = bankroll
+            if len(transfer)>0:
+                profit -= transfer[len(transfer)-1][0]
+                
+            self.ax.plot([i,i+1], [green[i],green[i]], color=self.color(transferType[i], beneficeSinceStart),
+                label=_('Bankroll') + ': \$%.2f' % bankroll + '\n' + _('Profit') + ': \$%.2f' % profit)
+            
+            legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
+            legend.draggable(True)
 
             self.graphBox.add(self.canvas)
             self.canvas.show()
             self.canvas.draw()
-            #self.exportButton.set_sensitive(True)
-
     #end of def showClicked
-
+    
+    #return total cash from transfer until «date»
+    def totalTransfer(self, date, transferts):
+        #~print transferts
+        if len(transferts) == 0 or (date < transferts[0][1]): 
+            return 0
+        
+        i=0
+        while (i < len(transferts)-1 and date > transferts[i][1]):
+            i = i + 1
+        return transferts[i][0]
+    
+    def color(self, typ, gain):
+        # 0:play, 1:transfert
+        if typ == 1:
+            return 'black'
+        elif gain < 0:
+            return 'red'
+        else:
+            return 'green'
+    
     def getData(self, names, sites):
         print "DEBUG: args are :"
         print names
@@ -318,10 +342,9 @@ class GuiBankrollGraphViewer (threading.Thread):
             return None
 
         green = map(lambda x:float(x[0]), winnings)
-
-        datesXAbs = map(lambda x:x[1], winnings)
+        dates = map(lambda x:x[1], winnings)
         transferType = map(lambda x:x[2], winnings)
-
+        
         #blue  = map(lambda x: float(x[1]) if x[2] == True  else 0.0, winnings)
         #red   = map(lambda x: float(x[1]) if x[2] == False else 0.0, winnings)
         greenline = cumsum(green)
@@ -329,8 +352,8 @@ class GuiBankrollGraphViewer (threading.Thread):
         #blueline  = cumsum(blue)
         #redline   = cumsum(red)
 
-        totaltransfer = sum(transfers)/100.
-        return (greenline/100, datesXAbs, totaltransfer, transferType)
+        #~transfers[0] = cumsum(transfers[0])
+        return (greenline/100., dates, transfers, transferType)
 
     def exportGraph (self, widget, data):
         if self.fig is None:
@@ -373,7 +396,7 @@ class GuiBankrollGraphViewer (threading.Thread):
         diainfo.destroy()
 
     #end of def exportGraph
-    def modifyTransfertsWindow (self, widget, data) :
+    def transfertsWindow (self, widget, data) :
         #if the window is already launched, put it in front
         if not self.settings['global_lock'].acquire(wait=False, source="GuiBankrollGraphViewer"):
             return
@@ -459,7 +482,6 @@ class GuiBankrollGraphViewer (threading.Thread):
         
         buttonDelete = gtk.ToolButton(gtk.STOCK_DELETE)
         buttonDelete.connect('clicked', self.deleteTransfer, 'clicked')
-        buttonDelete.connect('clicked', self.destroyWindow)
 
         
         hboxDelete.pack_start(vboxTab, 1)                
@@ -470,7 +492,7 @@ class GuiBankrollGraphViewer (threading.Thread):
 
         self.transferWindow.show_all()
         return
-    #end of def modifyTransfertsWindow
+    #end of def transfertsWindow
     def release(self, widget, data=None):
         self.settings['global_lock'].release()
         self.transferWindow.destroy()
@@ -528,6 +550,9 @@ class GuiBankrollGraphViewer (threading.Thread):
         self.db.cursor.execute('DELETE FROM BankrollsManagement WHERE id=' + str(id))
         self.db.commit()
         self.db.rollback()            
+        
+        #destroy the window
+        self.destroyWindow(widget)
         gobject.GObject.emit (self.filters.Button1, "clicked");
 
     def createTab(self, vbox) :

@@ -222,7 +222,7 @@ class GuiTourneyGraphViewer (threading.Thread):
                 else:
                     datesXAbs[0] = datesXAbs[i]
 
-            #no convert date to dateTime format
+            #now convert date to dateTime format
             if useDates:
                 for i in range(0, len(datesXAbs)):
                     if datesXAbs[i] is None:
