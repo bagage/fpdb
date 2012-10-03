@@ -148,6 +148,8 @@ class DetectInstalledSites():
     def detectWinamax(self):
         if self.Config.os_family == "Linux":
             hhp=os.path.expanduser("~/Winamax Poker/accounts/")
+            if not os.path.exists(hhp):
+                hhp=os.path.expanduser("~/Documents/Winamax Poker/accounts/")
         elif self.Config.os_family == "XP":
             hhp=os.path.expanduser(PROGRAM_FILES+"\\Winamax\\Poker\\")
         elif self.Config.os_family == "Win7":
