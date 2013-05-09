@@ -18,7 +18,6 @@
 import L10n
 _ = L10n.get_translation()
 
-import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
@@ -49,7 +48,7 @@ except ImportError, inst:
     print _("""This is of no consequence for other parts of the program, e.g. import and HUD are NOT affected by this problem.""")
     print "ImportError: %s" % inst.args
 
-class GuiTourneyGraphViewer (threading.Thread):
+class GuiTourneyGraphViewer:
 
     def __init__(self, querylist, config, parent, debug=True):
         """Constructor for GraphViewer"""
@@ -199,7 +198,7 @@ class GuiTourneyGraphViewer (threading.Thread):
 
             #TODO: Do something useful like alert user
         else:
-            self.ax.set_title(_("Tournament Results"))
+            self.ax.set_title(_("Tournament Results")+" (USD)")
 
             #Draw plot
             self.ax.plot(green, color='green', label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
@@ -216,7 +215,7 @@ class GuiTourneyGraphViewer (threading.Thread):
 
     def getData(self, names, sites):
         tmp = self.sql.query['tourneyGraph']
-        print "DEBUG: getData"
+        #print "DEBUG: getData"
         start_date, end_date = self.filters.getDates()
 
         #Buggered if I can find a way to do this 'nicely' take a list of integers and longs
@@ -232,8 +231,8 @@ class GuiTourneyGraphViewer (threading.Thread):
         tmp = tmp.replace("<enddate_test>", end_date)
         tmp = tmp.replace(",)", ")")
 
-        print "DEBUG: sql query:"
-        print tmp
+        #print "DEBUG: sql query:", tmp
+
         self.db.cursor.execute(tmp)
         #returns (HandId,Winnings,Costs,Profit)
         winnings = self.db.cursor.fetchall()

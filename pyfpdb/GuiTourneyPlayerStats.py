@@ -18,7 +18,6 @@
 import L10n
 _ = L10n.get_translation()
 
-import threading
 import pygtk
 pygtk.require('2.0')
 import gtk
@@ -26,11 +25,10 @@ from time import time, strftime
 
 import Charset
 import TourneyFilters
-import GuiPlayerStats
 
 colalias,colshow,colheading,colxalign,colformat,coltype = 0,1,2,3,4,5
 
-class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
+class GuiTourneyPlayerStats:
     def __init__(self, config, db, sql, mainwin, debug=True):
         self.conf = config
         self.db = db
@@ -117,7 +115,7 @@ class GuiTourneyPlayerStats (GuiPlayerStats.GuiPlayerStats):
         
         query = self.sql.query[query]
         query = self.refineQuery(query, numTourneys, tourneyTypes, playerids, sitenos, seats)
-        print "DEBUG:\n%s" % query
+        #print "DEBUG:\n%s" % query
         self.cursor.execute(query)
         result = self.cursor.fetchall()
         #print "result of the big query in addGrid:",result
