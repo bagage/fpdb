@@ -1,0 +1,9 @@
+The following packages are needed:
+- python-matplotlib
+- python-tk
+
+Optionnal:
+- python-pypoker-eval
+
+Install everything with the following:
+sudo aptitude install python-pypoker-eval python-tk python-matplotlib
