@@ -628,7 +628,7 @@ class Sql:
                         startTime timestamp without time zone NOT NULL)"""
         elif db_server == 'sqlite':
             self.query['createBankrollTable'] = """CREATE TABLE BankrollsManagement (
-                        id INTEGER PRIMARY KEY NOT NULL,
+                        id INTEGER PRIMARY KEY,
                         siteId INT NOT NULL,
                         playerId INT,
                         transfer INT,
