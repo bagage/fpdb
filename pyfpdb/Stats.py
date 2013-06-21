@@ -145,7 +145,7 @@ def totalprofit(stat_dict, player):
     
     try:
         stat = float(stat_dict[player]['net']) / 100
-        return (stat, '$%.2f' % stat, 'tp=$%.2f' % stat, 'totalprofit=$%.2f' % stat, str(stat), _('Total Profit'))
+        return (stat, '$%.2f' % stat, 'tp=$%.2f' % stat, 'tot_prof=$%.2f' % stat, str(stat), _('Total Profit'))
     except:
         return ('0', '$0.00', 'tp=0', 'totalprofit=0', '0', _('Total Profit'))
 
@@ -630,7 +630,7 @@ def fbr(stat_dict, player):
         return (stat,
                 '%3.1f'         % (100.0*stat),
                 'fbr=%3.1f%%'    % (100.0*stat),
-                'fbr=%3.1f%%' % (100.0*stat),
+                '4Brange=%3.1f%%' % (100.0*stat),
                 '(pfr*four_B)',
                 _('4 bet range'))
     except:
@@ -649,7 +649,7 @@ def ctb(stat_dict, player):
         return (stat,
                 '%3.1f'         % (100.0*stat),
                 'ctb=%3.1f%%'    % (100.0*stat),
-                'ctb=%3.1f%%' % (100.0*stat),
+                'call3B=%3.1f%%' % (100.0*stat),
                 '(%d/%d)'       % (float(stat_dict[player]['f3b_opp_0'])-stat_dict[player]['fb_0']-stat_dict[player]['f3b_0'], stat_dict[player]['fb_opp_0']),
                 _('% call 3 bet'))
     except:
@@ -1012,8 +1012,10 @@ def agg_fact_pct(stat_dict, player):
     try:
         bet_raise =   stat_dict[player]['aggr_1'] + stat_dict[player]['aggr_2'] + stat_dict[player]['aggr_3'] + stat_dict[player]['aggr_4']
         post_call  =  stat_dict[player]['call_1'] + stat_dict[player]['call_2'] + stat_dict[player]['call_3'] + stat_dict[player]['call_4']
-       
-        stat = float (bet_raise) / float(post_call + bet_raise)
+
+        if float(post_call + bet_raise) > 0.0:
+            stat = float (bet_raise) / float(post_call + bet_raise)
+                   
         return (stat,
                 '%2.2f'        % (stat) ,
                 'afap=%2.2f'    % (stat) ,

@@ -70,6 +70,38 @@ class Fulltilt(HandHistoryConverter):
                      '4000.00': ('1000.00','2000.00'),'4000': ('1000.00', '2000.00'),
                   }
     
+    SnG_Fee = {  50: {'Hyper': 5, 'Turbo': 6, 'Normal': 7},
+                100: {'Hyper': 8, 'Turbo': 10, 'Normal': 12},
+                225: {'Hyper': 15, 'Turbo': 20, 'Normal': 25},
+                500: {'Hyper': 25, 'Turbo': 35, 'Normal': 45},
+                1000: {'Hyper': 45, 'Turbo': 68, 'Normal': 80},
+                2000: {'Hyper': 85, 'Turbo': 135, 'Normal': 155},
+                3500: {'Hyper': 130, 'Turbo': 225, 'Normal': 260},
+                6000: {'Hyper': 215, 'Turbo': 375, 'Normal': 445},
+                11500: {'Hyper': 375, 'Turbo': 650, 'Normal': 800},
+                21500: {'Hyper': 600, 'Turbo': 1200, 'Normal': 1400},
+                37500: {'Hyper': 900, 'Turbo': 2000, 'Normal': 2300},
+                63500: {'Hyper': 1400, 'Turbo': 2800, 'Normal': 3100},
+                100000: {'Hyper': 2000, 'Turbo': 4000, 'Normal': 4700}
+              }
+    
+    HUSnG_Fee = {50: {'Hyper': 3, 'Turbo': 4, 'Normal': 5},
+                100: {'Hyper': 5, 'Turbo': 7, 'Normal': 8},
+                225: {'Hyper': 10, 'Turbo': 13, 'Normal': 15},
+                500: {'Hyper': 14, 'Turbo': 20, 'Normal': 23},
+                1000: {'Hyper': 24, 'Turbo': 38, 'Normal': 45},
+                2000: {'Hyper': 40, 'Turbo': 75, 'Normal': 89},
+                3500: {'Hyper': 67, 'Turbo': 125, 'Normal': 150},
+                6000: {'Hyper': 110, 'Turbo': 210, 'Normal': 250},
+                11500: {'Hyper': 205, 'Turbo': 375, 'Normal': 450},
+                20000: {'Hyper': 325, 'Turbo': 600, 'Normal': 700},
+                35000: {'Hyper': 475, 'Turbo': 900, 'Normal': 1000},
+                60000: {'Hyper': 700, 'Turbo': 1400, 'Normal': 1600},
+                100000: {'Hyper': 1000, 'Turbo': 2000, 'Normal': 2400},
+                200000: {'Turbo': 3000, 'Normal': 4000},
+                500000: {'Turbo': 5500, 'Normal': 7000}
+                }
+    
     Rush_Tables = ('Mach 10', 'Lightning', 'Velociraptor', 'Supercharger', 'Adrenaline', 'Afterburner', 'Mercury', 'Apollo', 'Warp Speed', 'Speeding Bullet')
 
     # Static regexes
@@ -77,9 +109,9 @@ class Fulltilt(HandHistoryConverter):
                                     (?:(?P<TOURNAMENT>.+)\s\((?P<TOURNO>\d+)\),\s)?
                                     .+?
                                     \s-\s(?P<STAKES1>(?P<CURRENCY1>[%(LS)s]|)?(?P<SB1>[%(NUM)s]+)/[%(LS)s]?(?P<BB1>[%(NUM)s]+)\s(Ante\s\$?(?P<ANTE1>[%(NUM)s]+)\s)?-\s)?
-                                    (?P<CAP>[%(LS)s]?(?P<CAPAMT>[%(NUM)s]+)\sCap\s)?
+                                    (?P<CAP>([%(LS)s]?[%(NUM)s]+\s)?C[a|A][p|P]\s)?
                                     (?P<LIMIT>(No\sLimit|Pot\sLimit|Limit|NL|PL|FL))\s
-                                    (?P<GAME>(Hold\'em|Omaha(\sH/L|\sHi/Lo|\sHi|)|Irish|5(-|\s)Card\sStud(\sHi)?|7\sCard\sStud|7\sCard\sStud|Stud\sH/L|Razz|Stud\sHi|2-7\sTriple\sDraw|5\sCard\sDraw|Badugi|2-7\sSingle\sDraw|A-5\sTriple\sDraw))\s
+                                    (?P<GAME>(Hold\'em|(5\sCard\s)?Omaha(\sH/L|\sHi/Lo|\sHi|)|Irish|Courchevel\sHi|5(-|\s)Card\sStud(\sHi)?|7\sCard\sStud|7\sCard\sStud|Stud\sH/L|Razz|Stud\sHi|2-7\sTriple\sDraw|5\sCard\sDraw|Badugi|2-7\sSingle\sDraw|A-5\sTriple\sDraw))\s
                                     (?P<STAKES2>-\s(?P<CURRENCY2>[%(LS)s]|)?(?P<SB2>[%(NUM)s]+)/[%(LS)s]?(?P<BB2>[%(NUM)s]+)\s(Ante\s\$?(?P<ANTE2>[%(NUM)s]+)\s)?)?-\s
                                  ''' % substitutions, re.VERBOSE)
     re_Identify     = re.compile(u'FullTiltPoker|Full\sTilt\sPoker\sGame\s#\d+:')
@@ -93,7 +125,7 @@ class Fulltilt(HandHistoryConverter):
                                     (?P<ENTRYID>\sEntry\s\#\d+\s)?)
                                     (\((?P<TABLEATTRIBUTES>.+)\)\s)?-\s
                                     (?P<STAKES1>[%(LS)s]?(?P<SB1>[%(NUM)s]+)/[%(LS)s]?(?P<BB1>[%(NUM)s]+)\s(Ante\s[%(LS)s]?(?P<ANTE1>[%(NUM)s]+)\s)?-\s)?
-                                    (?P<CAP>[%(LS)s]?(?P<CAPAMT>[%(NUM)s]+)\sCap\s)?
+                                    (?P<CAP>([%(LS)s]?[%(NUM)s]+\s)?C[a|A][p|P]\s)?
                                     (?P<GAMETYPE>[-\da-zA-Z\/\'\s]+)\s
                                     (?P<STAKES2>-\s[%(LS)s]?(?P<SB2>[%(NUM)s]+)/[%(LS)s]?(?P<BB2>[%(NUM)s]+)\s(Ante\s[%(LS)s]?(?P<ANTE2>[%(NUM)s]+)\s)?)?-\s
                                     (?P<DATETIME>.+$)
@@ -105,7 +137,7 @@ class Fulltilt(HandHistoryConverter):
                                          (\s(?P<SHOOTOUT>Shootout))?
                                          (\s(?P<SNG>Sit\s&\sGo))?
                                          (\s(?P<GUARANTEE>Guarantee))?
-                                         (\s\((?P<TURBO>Turbo)\))?))
+                                         (\s\((?P<TURBO>(Turbo|Super\sTurbo|Escalator))\))?))
                                     ''' % substitutions, re.MULTILINE|re.VERBOSE)
     re_Button       = re.compile('^The button is in seat #(?P<BUTTON>\d+)', re.MULTILINE)
     re_PlayerInfo   = re.compile('Seat (?P<SEAT>[0-9]+): (?P<PNAME>.{2,15}) \([%(LS)s]?(?P<CASH>[%(NUM)s]+)\)(?P<SITOUT>, is sitting out)?$' % substitutions, re.MULTILINE)
@@ -184,6 +216,8 @@ class Fulltilt(HandHistoryConverter):
                     'Omaha' : ('hold','omahahi'),
                 'Omaha H/L' : ('hold','omahahilo'),
               'Omaha Hi/Lo' : ('hold','omahahilo'),
+          '5 Card Omaha Hi' : ('hold', '5_omahahi'),
+            'Courchevel Hi' : ('hold', 'cour_hi'),
                     'Irish' : ('hold','irish'), 
                      'Razz' : ('stud','razz'), 
               '7 Card Stud' : ('stud','studhi'),
@@ -237,11 +271,8 @@ class Fulltilt(HandHistoryConverter):
         # NB: SB, BB must be interpreted as blinds or bets depending on limit type.
         m = self.re_Mixed.search(self.in_path)
         if m: info['mix'] = mixes[m.groupdict()['MIXED']]
-
-        if mg['CAP'] is not None:
-            info['cap'] = self.clearMoneyString(mg['CAPAMT'])
             
-        if not info['currency'] and info['type']=='ring':
+        if not mg['CURRENCY%s' % stakesId] and info['type']=='ring':
             info['currency'] = 'play'
 
         if info['limitType'] == 'fl' and info['bb'] is not None:
@@ -315,7 +346,7 @@ class Fulltilt(HandHistoryConverter):
             if hand.gametype['base'] == 'stud':
                 hand.maxseats = 8
             elif hand.gametype['base'] == 'draw':
-                hand.maxseats = 8
+                hand.maxseats = 6
             else:
                 hand.maxseats = 9
         #print hand.maxseats
@@ -327,13 +358,22 @@ class Fulltilt(HandHistoryConverter):
         # Done: if there's a way to figure these out, we should.. otherwise we have to stuff it with unknowns
         if m.group('TOURNAMENT') is not None:
             n = self.re_TourneyExtraInfo.search(m.group('TOURNAMENT'))
+            if n.group('TURBO') is not None :
+                if 'Sup' in n.group('TURBO'):
+                    hand.speed = "Hyper"
+                else:
+                    hand.speed = n.group('TURBO')
+            if n.group('SNG') is not None:
+                hand.isSng = True
+                
+            hand.buyin = 0
+            hand.fee=0
+            hand.buyinCurrency="NA"  
             if (n.group('BUYIN') is not None and n.group('FEE') is not None):
                 if n.group('CURRENCY')=="$":
                     hand.buyinCurrency="USD"
                 elif n.group('CURRENCY')==u"€":
                     hand.buyinCurrency="EUR"
-                else:
-                    hand.buyinCurrency="NA"
                 hand.buyin = int(100*Decimal(self.clearMoneyString(n.group('BUYIN'))))
                 hand.fee = int(100*Decimal(self.clearMoneyString(n.group('FEE'))))
             elif n.group('SPECIAL')=='Play Money':
@@ -344,13 +384,19 @@ class Fulltilt(HandHistoryConverter):
                 hand.buyin = 0
                 hand.fee=0
                 hand.buyinCurrency="FREE"  
-            else:
-                hand.buyin = 0
-                hand.fee=0
-                hand.buyinCurrency="NA"  
+            elif (n.group('BUYIN') is not None and hand.isSng):
+                if n.group('CURRENCY')=="$":
+                    hand.buyinCurrency="USD"
+                elif n.group('CURRENCY')==u"€":
+                    hand.buyinCurrency="EUR"
+                buyinfee = int(100*Decimal(self.clearMoneyString(n.group('BUYIN'))))
+                if hand.maxseats==2 and buyinfee in self.HUSnG_Fee and self.HUSnG_Fee[buyinfee].get(hand.speed) is not None:
+                    hand.fee = self.HUSnG_Fee[buyinfee][hand.speed]
+                    hand.buyin = buyinfee - hand.fee
+                if hand.maxseats!=2 and buyinfee in self.SnG_Fee and self.SnG_Fee[buyinfee].get(hand.speed) is not None:
+                    hand.fee = self.SnG_Fee[buyinfee][hand.speed]
+                    hand.buyin = buyinfee - hand.fee
                  
-            if n.group('TURBO') is not None :
-                hand.speed = "Turbo"
             if n.group('SPECIAL') is not None :
                 special = n.group('SPECIAL')
                 if special == "Rebuy":

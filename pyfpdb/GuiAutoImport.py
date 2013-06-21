@@ -35,6 +35,7 @@ import Importer
 from optparse import OptionParser
 import Configuration
 import string
+import interlocks
 
 if __name__ == "__main__":
     Configuration.set_logfile("fpdb-log.txt")
@@ -182,6 +183,7 @@ class GuiAutoImport:
     def do_import(self):
         """Callback for timer to do an import iteration."""
         if self.doAutoImportBool:
+            self.importer.autoSummaryGrab()
             self.startButton.set_label(_(u'_Auto Import Running'))
             self.importer.runUpdated()
             self.addText(".")
@@ -209,7 +211,7 @@ class GuiAutoImport:
                 if os.name == 'posix':
                     if self.posix_detect_hh_dirs(site):
                         #data[1].set_text(dia_chooser.get_filename())
-                        self.input_settings[site][0]
+                        self.input_settings[(site, 'hh')][0]
                         pass
                 elif os.name == 'nt':
                     # Sorry
@@ -284,9 +286,9 @@ class GuiAutoImport:
                     except:
                         self.addText("\n" + _("*** GuiAutoImport Error opening pipe:") + " " + traceback.format_exc() )
                     else:
-                        for site in self.input_settings:
-                            self.importer.addImportDirectory(self.input_settings[site][0], monitor = True, site=site)
-                            self.addText("\n * " + _("Add %s import directory %s") % (site, str(self.input_settings[site][0])))
+                        for (site,type) in self.input_settings:
+                            self.importer.addImportDirectory(self.input_settings[(site,type)][0], monitor = True, site=site)
+                            self.addText("\n * " + _("Add %s import directory %s") % (site, str(self.input_settings[(site,type)][0])))
                             self.do_import()
                     interval = int(self.intervalEntry.get_text())
                     if self.importtimer != 0:
@@ -296,9 +298,10 @@ class GuiAutoImport:
             else:
                 self.addText("\n" + _("Auto Import aborted.") + _("Global lock not available."))
         else: # toggled off
+            self.doAutoImportBool = False # do_import will return this and stop the gobject callback timer
+            self.importer.autoSummaryGrab(True)
             gobject.source_remove(self.importtimer)
             self.settings['global_lock'].release()
-            self.doAutoImportBool = False # do_import will return this and stop the gobject callback timer
             self.addText("\n" + _("Stopping Auto Import.") + _("Global lock released."))
             if self.pipe_to_hud.poll() is not None:
                 self.addText("\n * " + _("Stop Auto Import") + ": " + _("HUD already terminated."))
@@ -320,13 +323,13 @@ class GuiAutoImport:
     #Create the site line given required info and setup callbacks
     #enabling and disabling sites from this interface not possible
     #expects a box to layout the line horizontally
-    def createSiteLine(self, hbox1, hbox2, site, iconpath, hhpath, filter_name, active = True):
+    def createSiteLine(self, hbox1, hbox2, site, iconpath, type, path, filter_name, active = True):
         label = gtk.Label(_("%s auto-import:") % site)
         hbox1.pack_start(label, False, False, 3)
         label.show()
 
         dirPath=gtk.Entry()
-        dirPath.set_text(hhpath)
+        dirPath.set_text(path)
         hbox1.pack_start(dirPath, True, True, 3)
 #       Anything typed into dirPath was never recognised (only the browse button works)
 #       so just prevent entry to avoid user confusion
@@ -335,7 +338,7 @@ class GuiAutoImport:
         dirPath.show()
 
         browseButton=gtk.Button(_("Browse..."))
-        browseButton.connect("clicked", self.browseClicked, [site] + [dirPath])
+        browseButton.connect("clicked", self.browseClicked, [(site,type)] + [dirPath])
         hbox2.pack_start(browseButton, False, False, 3)
         browseButton.show()
 
@@ -362,8 +365,17 @@ class GuiAutoImport:
 
             params = self.config.get_site_parameters(site)
             paths = self.config.get_default_paths(site)
-            self.createSiteLine(pathHBox1, pathHBox2, site, False, paths['hud-defaultPath'], params['converter'], params['enabled'])
-            self.input_settings[site] = [paths['hud-defaultPath']] + [params['converter']]
+            
+            self.createSiteLine(pathHBox1, pathHBox2, site, False, 'hh', paths['hud-defaultPath'], params['converter'], params['enabled'])
+            self.input_settings[(site, 'hh')] = [paths['hud-defaultPath']] + [params['converter']]
+            
+            if 'hud-defaultTSPath' in paths:
+                pathHBox1 = gtk.HBox(False, 0)
+                vbox1.pack_start(pathHBox1, False, True, 0)
+                pathHBox2 = gtk.HBox(False, 0)
+                vbox2.pack_start(pathHBox2, False, True, 0)
+                self.createSiteLine(pathHBox1, pathHBox2, site, False, 'ts', paths['hud-defaultTSPath'], params['summaryImporter'], params['enabled'])
+                self.input_settings[(site, 'ts')] = [paths['hud-defaultTSPath']] + [params['summaryImporter']]
         #log.debug("addSites: input_settings="+str(self.input_settings))
 
 if __name__== "__main__":
@@ -392,6 +404,8 @@ if __name__== "__main__":
     settings.update(config.get_db_parameters())
     settings.update(config.get_import_parameters())
     settings.update(config.get_default_paths())
+    settings['global_lock'] = interlocks.InterProcessLock(name="fpdb_global_lock")
+    settings['cl_options'] = string.join(sys.argv[1:])
 
     if(options.gui == True):
         i = GuiAutoImport(settings, config, None, None)

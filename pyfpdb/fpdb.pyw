@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#Copyright 2008-2011 Steffen Schaumburg
+#Copyright 2008-2013 Steffen Schaumburg
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU Affero General Public License as published by
 #the Free Software Foundation, version 3 of the License.
@@ -86,7 +86,7 @@ try:
     VERSION = subprocess.Popen(["git", "describe", "--tags", "--dirty"], stdout=subprocess.PIPE).communicate()[0]
     VERSION = VERSION[:-1]
 except:
-    VERSION = "0.39.900"
+    VERSION = "0.39.993"
 
 
 class fpdb:
@@ -214,7 +214,7 @@ class fpdb:
         dia = gtk.AboutDialog()
         dia.set_name("Free Poker Database (FPDB)")
         dia.set_version(VERSION)
-        dia.set_copyright(_("Copyright 2008-2011. See contributors.txt for details"))
+        dia.set_copyright("Copyright 2008-2013. See contributors.txt for details")   #do not translate copyright message
         dia.set_comments(_("You are free to change, and distribute original or changed versions of fpdb within the rules set out by the license"))
         dia.set_license(_("Please see the help screen for license information"))
         dia.set_website("http://fpdb.sourceforge.net/")
@@ -515,14 +515,17 @@ class fpdb:
             dia_confirm.destroy()
             if response == gtk.RESPONSE_YES:
                 self.db.recreate_tables()
-                # find any guibulkimport/guiautoimport windows and clear player cache:
+                # find any guibulkimport/guiautoimport windows and clear cache:
                 for t in self.threads:
                     if isinstance(t, GuiBulkImport.GuiBulkImport) or isinstance(t, GuiAutoImport.GuiAutoImport):
-                        t.importer.database.resetPlayerIDs()
+                        t.importer.database.resetCache()
                 self.release_global_lock()
             elif response == gtk.RESPONSE_NO:
                 self.release_global_lock()
                 print _('User cancelled recreating tables')
+        else:
+            self.warning_box(_("Cannot open Database Maintenance window because other windows have been opened. Re-start fpdb to use this option."))
+
     #end def dia_recreate_tables
 
     def dia_recreate_hudcache(self, widget, data=None):
@@ -574,8 +577,10 @@ class fpdb:
                 print _('User cancelled rebuilding hud cache')
 
             self.dia_confirm.destroy()
+            self.release_global_lock()
+        else:
+            self.warning_box(_("Cannot open Database Maintenance window because other windows have been opened. Re-start fpdb to use this option."))
 
-        self.release_global_lock()
 
     def dia_rebuild_indexes(self, widget, data=None):
         if self.obtain_global_lock("dia_rebuild_indexes"):
@@ -586,15 +591,16 @@ class fpdb:
                                                  message_format=_("Confirm rebuilding database indexes"))
             diastring = _("Please confirm that you want to rebuild the database indexes.")
             self.dia_confirm.format_secondary_text(diastring)
+            lbl = gtk.Label()
+            self.dia_confirm.vbox.add(lbl)
+            lbl.show()
             # disable windowclose, do not want the the underlying processing interrupted mid-process
             self.dia_confirm.set_deletable(False)
 
             response = self.dia_confirm.run()
             if response == gtk.RESPONSE_YES:
-                #FIXME these progress messages do not seem to work in *nix
-                lbl = gtk.Label(_(" Rebuilding Indexes ... "))
-                self.dia_confirm.vbox.add(lbl)
-                lbl.show()
+                
+                lbl.set_text(_(" Rebuilding Indexes ... "))
                 while gtk.events_pending():
                     gtk.main_iteration_do(False)
                 self.db.rebuild_indexes()
@@ -612,8 +618,9 @@ class fpdb:
                 print _('User cancelled rebuilding db indexes')
 
             self.dia_confirm.destroy()
-
-        self.release_global_lock()
+            self.release_global_lock()
+        else:
+            self.warning_box(_("Cannot open Database Maintenance window because other windows have been opened. Re-start fpdb to use this option."))
 
     def dia_logs(self, widget, data=None):
         """opens the log viewer window"""
@@ -647,8 +654,9 @@ class fpdb:
                 gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_SAVE, gtk.RESPONSE_ACCEPT))
         dia.set_deletable(False)
+        dia.resize(750,550)
         label = gtk.Label(_("Please select which sites you play on and enter your usernames."))
-        dia.vbox.add(label)
+        dia.vbox.pack_start(label, expand=False, padding=5)
         
         self.load_profile()
         site_names = self.config.site_ids
@@ -660,14 +668,17 @@ class fpdb:
             except KeyError:
                 pass
         
-        label = gtk.Label(" ")
-        dia.vbox.add(label)
-        
-        column_headers=[_("Site"), _("Screen Name"), _("History Path"), _("Detect")] #TODO , _("Summary Path"), _("HUD")] 
+        column_headers=[_("Site"), _("Detect"), _("Screen Name"), _("Hand History Path"), _(""), _("Tournament Summary Path"), _("")]  # todo _("HUD")
         #HUD column will contain a button that shows favseat and HUD locations. Make it possible to load screenshot to arrange HUD windowlets.
+
         table = gtk.Table(rows=len(available_site_names)+1, columns=len(column_headers), homogeneous=False)
-        dia.vbox.add(table)
-        
+
+        scrolling_frame = gtk.ScrolledWindow(hadjustment=None, vadjustment=None)
+        scrolling_frame.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolling_frame.show()
+        scrolling_frame.add_with_viewport(table)
+        dia.vbox.pack_end(scrolling_frame, expand=True, padding=0)
+                
         for header_number in range (0, len(column_headers)):
             label = gtk.Label(column_headers[header_number])
             table.attach(label, header_number, header_number+1, 0, 1)
@@ -675,8 +686,9 @@ class fpdb:
         check_buttons=[]
         screen_names=[]
         history_paths=[]
+        summary_paths=[]
         detector = DetectInstalledSites.DetectInstalledSites()
-        
+              
         y_pos=1
         for site_number in range(0, len(available_site_names)):
             check_button = gtk.CheckButton(label=available_site_names[site_number])
@@ -684,21 +696,40 @@ class fpdb:
             table.attach(check_button, 0, 1, y_pos, y_pos+1)
             check_buttons.append(check_button)
             
-            entry = gtk.Entry()
-            entry.set_text(self.config.supported_sites[available_site_names[site_number]].screen_name)
-            table.attach(entry, 1, 2, y_pos, y_pos+1)
-            screen_names.append(entry)
+            hero = gtk.Entry()
+            hero.set_text(self.config.supported_sites[available_site_names[site_number]].screen_name)
+            table.attach(hero, 2, 3, y_pos, y_pos+1)
+            screen_names.append(hero)
+            hero.connect("changed", self.autoenableSite, (check_buttons[site_number],))
             
             entry = gtk.Entry()
             entry.set_text(self.config.supported_sites[available_site_names[site_number]].HH_path)
-            table.attach(entry, 2, 3, y_pos, y_pos+1)
+            table.attach(entry, 3, 4, y_pos, y_pos+1)
             history_paths.append(entry)
+            
+            image = gtk.Image()
+            image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
+            choose1 = gtk.Button()
+            choose1.set_image(image)
+            table.attach(choose1, 4, 5, y_pos, y_pos+1)
+            choose1.connect("clicked", self.browseClicked, (dia, history_paths[site_number]))
+            
+            entry = gtk.Entry()
+            entry.set_text(self.config.supported_sites[available_site_names[site_number]].TS_path)
+            table.attach(entry, 5, 6, y_pos, y_pos+1)
+            summary_paths.append(entry)
+
+            image = gtk.Image()
+            image.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
+            choose2 = gtk.Button()
+            choose2.set_image(image)
+            table.attach(choose2, 6, 7, y_pos, y_pos+1)
+            choose2.connect("clicked", self.browseClicked, (dia, summary_paths[site_number]))
             
             if available_site_names[site_number] in detector.supportedSites:
                 button = gtk.Button(_("Detect"))
-                table.attach(button, 3, 4, y_pos, y_pos+1)
-                button.connect("clicked", self.detect_clicked, (detector, available_site_names[site_number], screen_names[site_number], history_paths[site_number]))
-            
+                table.attach(button, 1, 2, y_pos, y_pos+1)
+                button.connect("clicked", self.detect_clicked, (detector, available_site_names[site_number], screen_names[site_number], history_paths[site_number], summary_paths[site_number]))
             y_pos+=1
         
         dia.show_all()
@@ -706,21 +737,52 @@ class fpdb:
         if (response == gtk.RESPONSE_ACCEPT):
             for site_number in range(0, len(available_site_names)):
                 #print "site %s enabled=%s name=%s" % (available_site_names[site_number], check_buttons[site_number].get_active(), screen_names[site_number].get_text(), history_paths[site_number].get_text())
-                self.config.edit_site(available_site_names[site_number], str(check_buttons[site_number].get_active()), screen_names[site_number].get_text(), history_paths[site_number].get_text())
+                self.config.edit_site(available_site_names[site_number], str(check_buttons[site_number].get_active()), screen_names[site_number].get_text(), history_paths[site_number].get_text(), summary_paths[site_number].get_text())
             
             self.config.save()
             self.reload_config(dia)
             
         dia.destroy()
+        
+    def autoenableSite(self, widget, data):
+        #autoactivate site if something gets typed in the screename field
+        checkbox=data[0]
+        checkbox.set_active(True)
+                
+    def browseClicked(self, widget, data):
+        """runs when user clicks one of the browse buttons for the TS folder"""
+
+        parent=data[0]
+        path=data[1]
+
+        dia_chooser = gtk.FileChooserDialog(title=_("Please choose the path that you want to Auto Import"),
+                action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+                buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+
+        dia_chooser.set_filename(path.get_text())
+        dia_chooser.set_show_hidden(True)
+        dia_chooser.set_destroy_with_parent(True)
+        dia_chooser.set_transient_for(parent)
+
+        response = dia_chooser.run()
+        if response == gtk.RESPONSE_OK:
+            path.set_text(dia_chooser.get_filename())
+        elif response == gtk.RESPONSE_CANCEL:
+            #print 'Closed, no files selected'
+            pass
+        dia_chooser.destroy()
     
     def detect_clicked(self, widget, data):
         detector = data[0]
         site_name = data[1]
         entry_screen_name = data[2]
         entry_history_path = data[3]
+        entry_summary_path = data[4]
         if detector.sitestatusdict[site_name]['detected']:
             entry_screen_name.set_text(detector.sitestatusdict[site_name]['heroname'])
             entry_history_path.set_text(detector.sitestatusdict[site_name]['hhpath'])
+            if detector.sitestatusdict[site_name]['tspath']:
+                entry_summary_path.set_text(detector.sitestatusdict[site_name]['tspath'])
     
     def reload_config(self, dia):
         if len(self.nb_tab_names) == 1:
@@ -808,7 +870,6 @@ class fpdb:
                 <menu action="import">
                   <menuitem action="bulkimp"/>
                   <menuitem action="imapimport"/>
-                  <menuitem action="tourneyimp"/>
                 </menu>
                 <menu action="hud">
                   <menuitem action="autoimp"/>
@@ -827,11 +888,10 @@ class fpdb:
                   <menuitem action="tourneyviewer"/>
                 </menu>
                 <menu action="maintenance">
-                  <menuitem action="maintaindbs"/>
+                  <menuitem action="databasestats"/>
                   <menuitem action="createtabs"/>
                   <menuitem action="rebuildhudcache"/>
                   <menuitem action="rebuildindexes"/>
-                  <menuitem action="databasestats"/>
                   <menuitem action="dumptofile"/>
                 </menu>
                 <menu action="help">
@@ -854,7 +914,6 @@ class fpdb:
                                  ('preferences', None, _('_Preferences'), _('<control>F'), 'Edit your preferences', self.dia_advanced_preferences),
                                  ('import', None, _('_Import')),
                                  ('bulkimp', None, _('_Bulk Import'), _('<control>B'), 'Bulk Import', self.tab_bulk_import),
-                                 ('tourneyimp', None, _('Tournament _Results Import'), _('<control>R'), 'Tournament Results Import', self.tab_tourney_import),
                                  ('imapimport', None, _('_Import through eMail/IMAP'), _('<control>I'), 'Import through eMail/IMAP', self.tab_imap_import),
                                  ('cash', None, _('_Cash')),
                                  ('hud', None, _('_HUD')),
@@ -1018,8 +1077,9 @@ class fpdb:
         #If the db-version is out of date, don't validate the config 
         # otherwise the end user gets bombarded with false messages
         # about every site not existing
-        if not self.db.wrongDbVersion:
-            self.validate_config()
+        if hasattr(self.db, 'wrongDbVersion'):
+            if not self.db.wrongDbVersion:
+                self.validate_config()
 
     def obtain_global_lock(self, source):
         ret = self.lock.acquire(source=source)  # will return false if lock is already held

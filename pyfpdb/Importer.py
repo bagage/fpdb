@@ -228,7 +228,9 @@ class Importer:
             #print "addImportDirectory: checking files in", dir
             for file in os.listdir(dir):
                 filename = os.path.join(dir, file)
-                if (time() - os.stat(filename).st_mtime)<= 300:
+                if (time() - os.stat(filename).st_mtime)<= 43200: # look all files modded in the last 12 hours
+                                                                    # need long time because FTP in Win does not
+                                                                    # update the timestamp on the HH during session
                     self.addImportFile(filename, "auto")
         else:
             log.warning(_("Attempted to add non-directory '%s' as an import directory") % str(dir))
@@ -249,17 +251,20 @@ class Importer:
 
         # Tidying up after import
         if 'dropHudCache' in self.settings and self.settings['dropHudCache'] == 'drop':
-            log.info(_("rebuild_cache"))
-            self.database.rebuild_cache()
+            log.info(_("rebuild_caches"))
+            self.database.rebuild_caches()
         else:
-            log.info(_("cleanUpTourneyTypes"))
-            self.database.cleanUpTourneyTypes()
-            self.database.resetttclean()
-            self.database.commit()
+            log.info(_("runPostImport"))
+            self.runPostImport()
         self.database.analyzeDB()
         endtime = time()
         return (totstored, totdups, totpartial, toterrors, endtime-starttime)
     # end def runImport
+    
+    def runPostImport(self):
+        self.database.cleanUpTourneyTypes()
+        self.database.cleanUpWeeksMonths()
+        self.database.resetClean()
 
     def importFiles(self, q):
         """"Read filenames in self.filelist and pass to despatcher."""
@@ -305,12 +310,12 @@ class Importer:
 
     def _import_despatch(self, fpdbfile):
         stored, duplicates, partial, errors, ttime = 0,0,0,0,0
-        if fpdbfile.ftype == "hh":
+        if fpdbfile.ftype in ("hh", "both"):
             (stored, duplicates, partial, errors, ttime) = self._import_hh_file(fpdbfile)
         if fpdbfile.ftype == "summary":
             (stored, duplicates, partial, errors, ttime) = self._import_summary_file(fpdbfile)
-        #if fpdbfile.ftype == "both":
-            #FIXME: Do something useful here, probably site specific
+        if fpdbfile.ftype == "both" and fpdbfile.path not in self.updatedsize:
+            self._import_summary_file(fpdbfile)
         #    pass
         print "DEBUG: _import_summary_file.ttime: %.3f %s" % (ttime, fpdbfile.ftype)
         return (stored, duplicates, partial, errors, ttime)
@@ -396,6 +401,7 @@ class Importer:
         self.addToDirList = {}
         self.removeFromFileList = {}
         self.database.rollback()
+        self.runPostImport()
 
     def _import_hh_file(self, fpdbfile):
         """Function for actual import of a hh file
@@ -466,12 +472,12 @@ class Importer:
                         stime = time()
                         hand.insertHands(self.database, fpdbfile.fileId, doinsert, self.settings['testData'])
                         ihtimer = time() - stime
-                        #stime = time()
-                        #hand.updateCardsCache(self.database, self.tz, doinsert)
-                        #cctimer = time() - stime
-                        #stime = time()
-                        #hand.updatePositionsCache(self.database, self.tz, doinsert) 
-                        #pctimer = time() - stime
+                        stime = time()
+                        hand.updateCardsCache(self.database, None, doinsert)
+                        cctimer = time() - stime
+                        stime = time()
+                        hand.updatePositionsCache(self.database, None, doinsert) 
+                        pctimer = time() - stime
                         stime = time()
                         hand.updateHudCache(self.database, doinsert)
                         hctimer = time() - stime
@@ -495,8 +501,8 @@ class Importer:
                         hand.hero, self.database.hbulk, hand.handsplayers  = 0, self.database.hbulk[:-1], [] #making sure we don't insert data from this hand
                         hand.updateSessionsCache(self.database, None, doinsert)
                         hand.insertHands(self.database, fpdbfile.fileId, doinsert, self.settings['testData'])
-                        #hand.updateCardsCache(self.database, None, doinsert)
-                        #hand.updatePositionsCache(self.database, None, doinsert)
+                        hand.updateCardsCache(self.database, None, doinsert)
+                        hand.updatePositionsCache(self.database, None, doinsert)
                         hand.updateHudCache(self.database, doinsert)
                         hand.handsplayers, hand.hero = hp, hero
                 #log.debug("DEBUG: hand.updateSessionsCache: %s" % (t5tot))
@@ -529,9 +535,20 @@ class Importer:
             return (0, 0, partial, errors, time() - ttime)
         
         stored -= duplicates
+        
+        if stored>0 and ihands[0].gametype['type']=='tour':
+            if hhc.summaryInFile:
+                fpdbfile.ftype = "both"
 
         ttime = time() - ttime
         return (stored, duplicates, partial, errors, ttime)
+    
+    def autoSummaryGrab(self, force = False):
+        for f, fpdbfile in self.filelist.items():
+            stat_info = os.stat(f)
+            if ((time() - stat_info.st_mtime)> 300 or force) and fpdbfile.ftype == "both":
+                self._import_summary_file(fpdbfile)
+                fpdbfile.ftype = "hh"
 
     def _import_summary_file(self, fpdbfile):
         (stored, duplicates, partial, errors, ttime) = (0, 0, 0, 0, time())
