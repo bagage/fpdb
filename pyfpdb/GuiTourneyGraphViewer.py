@@ -66,6 +66,7 @@ class GuiTourneyGraphViewer:
         filters_display = { "Heroes"        : True,
                             "Sites"         : True,
                             "Games"         : False,
+                            "Currencies"    : True,
                             "Limits"        : False,
                             "LimitSep"      : False,
                             "LimitType"     : False,
@@ -140,6 +141,7 @@ class GuiTourneyGraphViewer:
         sites   = self.filters.getSites()
         heroes  = self.filters.getHeroes()
         siteids = self.filters.getSiteIds()
+        currencies = self.filters.getCurrencies()
 
         # Which sites are selected?
         for site in sites:
@@ -166,12 +168,13 @@ class GuiTourneyGraphViewer:
 
         #Get graph data from DB
         starttime = time()
-        (green, datesXAbs) = self.getData(playerids, sitenos)
+        (green, datesXAbs) = self.getData(playerids, sitenos, currencies)
         print _("Graph generated in: %s") %(time() - starttime)
 
+        currencyLabel = ','.join(['%s' % key for key in currencies.keys()])
 
         #Set axis labels and grid overlay properites
-        self.ax.set_ylabel("$", fontsize = 12)
+        self.ax.set_ylabel(currencyLabel, fontsize = 12)
         self.ax.grid(color='g', linestyle=':', linewidth=0.2)
         if green == None or green == []:
             self.ax.set_title(_("No Data for Player(s) Found"))
@@ -197,7 +200,7 @@ class GuiTourneyGraphViewer:
                         0.,   500.,  1000.,   900.,   800.,   700.,   600.,   500.,
                         400.,   300.,   200.,   100.,     0.,   500.,  1000.,  1000.])
 
-            self.ax.plot(green, color='green', label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
+            self.ax.plot(green, color='green', label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + '(' + currencyLabel + '): %.2f' % green[-1])
             self.graphBox.add(self.canvas)
             self.canvas.show()
             self.canvas.draw()
@@ -237,7 +240,8 @@ class GuiTourneyGraphViewer:
             mycolor='red'
             if green[0]>0:
                 mycolor='green'
-            self.ax.plot([0,1], [0,green[0]], color=mycolor, label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
+
+            self.ax.plot([0,1], [0,green[0]], color=mycolor, label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + '(' + currencyLabel + '): %.2f' % green[-1])
             for i in range(1,  len(green)):
                 final=green[i]-green[i-1]
                 mycolor='red'
@@ -275,7 +279,7 @@ class GuiTourneyGraphViewer:
 
     #end of def showClicked
 
-    def getData(self, names, sites):
+    def getData(self, names, sites, currencies):
         tmp = self.sql.query['tourneyGraph']
         # print "DEBUG: getData. :"
         start_date, end_date = self.filters.getDates()
@@ -285,10 +289,18 @@ class GuiTourneyGraphViewer:
         # [5L] into (5) not (5,) and [5L, 2829L] into (5, 2829)
         nametest = str(tuple(names))
         sitetest = str(tuple(sites))
+        currencytest = str(tuple())
 
         #Must be a nicer way to deal with tuples of size 1 ie. (2,) - which makes sql barf
         tmp = tmp.replace("<player_test>", nametest)
         tmp = tmp.replace("<site_test>", sitetest)
+        
+        currencytest = str(tuple(currencies))
+        currencytest = currencytest.replace(",)",")")
+        currencytest = currencytest.replace("u'","'")
+        currencytest = "AND tt.currency in %s" % currencytest
+        tmp = tmp.replace("<currency_test>", currencytest)
+
         tmp = tmp.replace("<startdate_test>", start_date)
         tmp = tmp.replace("<enddate_test>", end_date)
         tmp = tmp.replace(",)", ")")
