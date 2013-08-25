@@ -277,7 +277,7 @@ class GuiTourneyGraphViewer:
 
     def getData(self, names, sites):
         tmp = self.sql.query['tourneyGraph']
-        print "DEBUG: getData. :"
+        # print "DEBUG: getData. :"
         start_date, end_date = self.filters.getDates()
 
         #Buggered if I can find a way to do this 'nicely' take a list of integers and longs
@@ -293,7 +293,7 @@ class GuiTourneyGraphViewer:
         tmp = tmp.replace("<enddate_test>", end_date)
         tmp = tmp.replace(",)", ")")
 
-        print "DEBUG: sql query:", tmp
+        # print "DEBUG: sql query:", tmp
 
         self.db.cursor.execute(tmp)
         #returns (HandId,Winnings,Costs,Profit)
@@ -312,7 +312,6 @@ class GuiTourneyGraphViewer:
         #blueline  = cumsum(blue)
         #redline   = cumsum(red)
 
-        print "a", greenline, datesXAbs
         return (greenline/100, datesXAbs)
 
     def exportGraph (self, widget, data):
