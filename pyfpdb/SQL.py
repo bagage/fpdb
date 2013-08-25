@@ -6133,7 +6133,7 @@ class Sql:
         #  being graphed - needs proper fix mantis #180 +#182
         ####################################
         self.query['tourneyGraph'] = """
-            SELECT tp.tourneyId, (coalesce(tp.winnings,0) - coalesce(tt.buyIn,0) - coalesce(tt.fee,0)) as profit, tp.koCount, tp.rebuyCount, tp.addOnCount, tt.buyIn, tt.fee, t.siteTourneyNo
+            SELECT tp.tourneyId, (coalesce(tp.winnings,0) - coalesce(tt.buyIn,0) - coalesce(tt.fee,0)) as profit, tp.koCount, tp.rebuyCount, tp.addOnCount, tt.buyIn, tt.fee, t.siteTourneyNo, t.startTime
             FROM TourneysPlayers tp
             INNER JOIN Players pl      ON  (pl.id = tp.playerId)
             INNER JOIN Tourneys t         ON  (t.id  = tp.tourneyId)

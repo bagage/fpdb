@@ -39,6 +39,8 @@ try:
     if calluse:
         matplotlib.use('GTKCairo')
     from matplotlib.figure import Figure
+    from matplotlib.dates import YearLocator, MonthLocator, DateFormatter
+    import datetime
     from matplotlib.backends.backend_gtk import FigureCanvasGTK as FigureCanvas
     from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
     from matplotlib.font_manager import FontProperties
@@ -61,20 +63,21 @@ class GuiTourneyGraphViewer:
         self.db = Database.Database(self.conf, sql=self.sql)
 
 
-        filters_display = { "Heroes"    : True,
-                            "Sites"     : True,
-                            "Games"     : False,
-                            "Limits"    : False,
-                            "LimitSep"  : False,
-                            "LimitType" : False,
-                            "Type"      : False,
-                            "UseType"   : 'tour',
-                            "Seats"     : False,
-                            "SeatSep"   : False,
-                            "Dates"     : True,
-                            "Groups"    : False,
-                            "Button1"   : True,
-                            "Button2"   : True
+        filters_display = { "Heroes"        : True,
+                            "Sites"         : True,
+                            "Games"         : False,
+                            "Limits"        : False,
+                            "LimitSep"      : False,
+                            "LimitType"     : False,
+                            "Type"          : False,
+                            "UseType"       : 'tour',
+                            "Seats"         : False,
+                            "SeatSep"       : False,
+                            "Dates"         : True,
+                            "GraphOpsTour"  : True,
+                            "Groups"        : False,
+                            "Button1"       : True,
+                            "Button2"       : True
                           }
 
         self.filters = Filters.Filters(self.db, self.conf, self.sql, display = filters_display)
@@ -163,12 +166,11 @@ class GuiTourneyGraphViewer:
 
         #Get graph data from DB
         starttime = time()
-        green = self.getData(playerids, sitenos)
+        (green, datesXAbs) = self.getData(playerids, sitenos)
         print _("Graph generated in: %s") %(time() - starttime)
 
 
         #Set axis labels and grid overlay properites
-        self.ax.set_xlabel(_("Tournaments"), fontsize = 12)
         self.ax.set_ylabel("$", fontsize = 12)
         self.ax.grid(color='g', linestyle=':', linewidth=0.2)
         if green == None or green == []:
@@ -202,14 +204,70 @@ class GuiTourneyGraphViewer:
 
             #TODO: Do something useful like alert user
         else:
-            self.ax.set_title(_("Tournament Results")+" (USD)")
+            self.ax.set_title(_("Tournament Results"))
+            useDates = True
 
-            #Draw plot
-            self.ax.plot(green, color='green', label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
+            #nothing to draw
+            if (len(green) == 0):
+                return
+            #Get the dates of tourneys
+            #if first tourney has no date, get the most ancient date and assume it's his one
+            if datesXAbs[0] is None:
+                i = 1
+                while i < len(datesXAbs) and type(datesXAbs[i]) is None:
+                    i = i+1
+                if i == len(datesXAbs):
+                    print "Wow wow wow : no dates in your whole tourneys"
+                    useDates = False
+                else:
+                    datesXAbs[0] = datesXAbs[i]
+
+            #now convert date to dateTime format
+            if useDates:
+                for i in range(0, len(datesXAbs)):
+                    if datesXAbs[i] is None:
+                        datesXAbs[i] = datesXAbs[i-1]
+                    else:
+                        datesXAbs[i] = datetime.datetime.strptime(datesXAbs[i], "%Y-%m-%d %H:%M:%S")
+
+                    datesXAbs[i] = datesXAbs[i].strftime('%d/%m')
+
+
+
+            mycolor='red'
+            if green[0]>0:
+                mycolor='green'
+            self.ax.plot([0,1], [0,green[0]], color=mycolor, label=_('Tournaments') + ': %d\n' % len(green) + _('Profit') + ': $%.2f' % green[-1])
+            for i in range(1,  len(green)):
+                final=green[i]-green[i-1]
+                mycolor='red'
+                if (green[i]>0):
+                    mycolor='green'
+
+
+                self.ax.plot([i,i+1], [green[i-1],green[i]], color=mycolor)
+                if (i % (len(green)/5) == 0):
+                    gain=""
+                    if (green[i]==0):
+                        gain="="
+                    else:
+                        if (green[i]>0):
+                            gain="+"
+                        gain += str(green[i])
+
+                    self.ax.annotate(gain, xy=(i, 0), color=mycolor, xycoords=('data', 'axes fraction'),
+                    xytext=(0, 18), textcoords='offset points', va='top', ha='left')
+
+                    if useDates:
+                        self.ax.annotate(datesXAbs[i], xy=(i, 0), xycoords=('data', 'axes fraction'),
+                        xytext=(0, -18), textcoords='offset points', va='top', ha='left')
+
+
+            #~self.ax.axhline(0, color='black', lw=2)
 
             legend = self.ax.legend(loc='upper left', fancybox=True, shadow=True, prop=FontProperties(size='smaller'))
             legend.draggable(True)
-            
+
             self.graphBox.add(self.canvas)
             self.canvas.show()
             self.canvas.draw()
@@ -219,7 +277,7 @@ class GuiTourneyGraphViewer:
 
     def getData(self, names, sites):
         tmp = self.sql.query['tourneyGraph']
-        #print "DEBUG: getData"
+        print "DEBUG: getData. :"
         start_date, end_date = self.filters.getDates()
 
         #Buggered if I can find a way to do this 'nicely' take a list of integers and longs
@@ -235,7 +293,7 @@ class GuiTourneyGraphViewer:
         tmp = tmp.replace("<enddate_test>", end_date)
         tmp = tmp.replace(",)", ")")
 
-        #print "DEBUG: sql query:", tmp
+        print "DEBUG: sql query:", tmp
 
         self.db.cursor.execute(tmp)
         #returns (HandId,Winnings,Costs,Profit)
@@ -243,15 +301,19 @@ class GuiTourneyGraphViewer:
         self.db.rollback()
 
         if len(winnings) == 0:
-            return None
+            return (None, None)
 
         green = map(lambda x:float(x[1]), winnings)
+
+        datesXAbs = map(lambda x:x[8], winnings)
         #blue  = map(lambda x: float(x[1]) if x[2] == True  else 0.0, winnings)
         #red   = map(lambda x: float(x[1]) if x[2] == False else 0.0, winnings)
         greenline = cumsum(green)
         #blueline  = cumsum(blue)
         #redline   = cumsum(red)
-        return (greenline/100)
+
+        print "a", greenline, datesXAbs
+        return (greenline/100, datesXAbs)
 
     def exportGraph (self, widget, data):
         if self.fig is None:
@@ -262,24 +324,24 @@ class GuiTourneyGraphViewer:
                                             buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OK,gtk.RESPONSE_OK))
         dia_chooser.set_destroy_with_parent(True)
         dia_chooser.set_transient_for(self.parent)
-        try: 
+        try:
             dia_chooser.set_filename(self.exportFile) # use previously chosen export path as default
         except:
             pass
 
         response = dia_chooser.run()
-        
+
         if response <> gtk.RESPONSE_OK:
             print _('Closed, no graph exported')
             dia_chooser.destroy()
             return
-            
+
         # generate a unique filename for export
         now = datetime.now()
         now_formatted = now.strftime("%Y%m%d%H%M%S")
         self.exportFile = dia_chooser.get_filename() + "/fpdb" + now_formatted + ".png"
         dia_chooser.destroy()
-        
+
         #print "DEBUG: self.exportFile = %s" %(self.exportFile)
         self.fig.savefig(self.exportFile, format="png")
 
@@ -289,8 +351,8 @@ class GuiTourneyGraphViewer:
                                 type=gtk.MESSAGE_INFO,
                                 buttons=gtk.BUTTONS_OK,
                                 message_format=_("Graph created"))
-        diainfo.format_secondary_text(self.exportFile)          
+        diainfo.format_secondary_text(self.exportFile)
         diainfo.run()
         diainfo.destroy()
-        
+
     #end of def exportGraph
