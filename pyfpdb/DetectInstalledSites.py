@@ -49,6 +49,7 @@ if platform.system() == 'Windows':
     import winpaths
     PROGRAM_FILES = winpaths.get_program_files()
     LOCAL_APPDATA = winpaths.get_local_appdata()
+    MY_DOCUMENTS = winpaths.get_my_documents()
 
 class DetectInstalledSites():
 
@@ -72,6 +73,7 @@ class DetectInstalledSites():
         self.supportedSites = [ "Full Tilt Poker",
                                 "PartyPoker",
                                 "Merge",
+                                "Winamax",
                                 "PokerStars"]#,
                                 #"Everleaf",
                                 #"Win2day",
@@ -83,7 +85,6 @@ class DetectInstalledSites():
                                 #"Partouche",
                                 #"PKR",
                                 #"iPoker",
-                                #"Winamax",
                                 #"Everest" ]
 
         self.supportedPlatforms = ["Linux", "XP", "Win7"]
@@ -114,6 +115,8 @@ class DetectInstalledSites():
             self.detectPokerStars()
         elif siteToDetect == "Merge":
             self.detectMergeNetwork()
+        elif siteToDetect == "Winamax":
+            self.detectWinamax()
 
         if (self.hhpathfound and self.herofound):
             self.hhpathfound = unicode(self.hhpathfound)
@@ -146,7 +149,31 @@ class DetectInstalledSites():
             pass
 
         return
-        
+
+    def detectWinamax(self):
+        if self.Config.os_family == "Linux":
+            hhp=os.path.expanduser("~/Documents/Winamax Poker/accounts")
+        elif self.Config.os_family == "XP":
+            #warning: cannot verify XP version, it should be checked
+            hhp=os.path.expanduser(MY_DOCUMENTS+"\\Winamax Poker\\accounts")
+        elif self.Config.os_family == "Win7":
+            hhp=os.path.expanduser(MY_DOCUMENTS+"\\Winamax Poker\\accounts")
+        else:
+            return
+
+        if os.path.exists(hhp):
+            self.hhpathfound = hhp
+        else:
+            return
+
+        dirs = os.listdir(hhp)
+        try:
+            self.herofound = dirs[0]
+            self.hhpathfound = self.hhpathfound + self.herofound + "/history"
+        except:
+            pass
+        return
+
     def detectPokerStars(self):
 
         if self.Config.os_family == "Linux":
@@ -217,12 +244,12 @@ class DetectInstalledSites():
 
         merge_skin_names = ["CarbonPoker", "PlayersOnly", "BlackChipPoker", "RPMPoker", "HeroPoker",
                             "PDCPoker", ]
-        
+
         for skin in merge_skin_names:
             if self.Config.os_family == "Linux":
                 hhp=os.path.expanduser("~/.wine/drive_c/Program Files/"+skin+"/history/")
             elif self.Config.os_family == "XP":
-                hhp=os.path.expanduser(PROGRAM_FILES+"\\"+skin+"\\history\\")            
+                hhp=os.path.expanduser(PROGRAM_FILES+"\\"+skin+"\\history\\")
             elif self.Config.os_family == "Win7":
                 hhp=os.path.expanduser(PROGRAM_FILES+"\\"+skin+"\\history\\")
             else:
