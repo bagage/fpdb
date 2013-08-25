@@ -21,6 +21,7 @@ _ = L10n.get_translation()
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 import sys
 import traceback
@@ -103,6 +104,9 @@ class GuiTourneyGraphViewer:
 
 
         self.db.rollback()
+
+        #update the graph at entry (simulate a "Refresh Graph" click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
 
     def get_vbox(self):
         """returns the vbox of this thread"""

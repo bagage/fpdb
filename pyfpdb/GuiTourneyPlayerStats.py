@@ -21,6 +21,7 @@ _ = L10n.get_translation()
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 from time import time, strftime
 
 import Charset
@@ -103,6 +104,9 @@ class GuiTourneyPlayerStats:
         self.main_hbox.pack1(self.filters.get_vbox())
         self.main_hbox.pack2(self.stats_frame)
         self.main_hbox.show()
+
+        #update the graph at entry (simulate a "Refresh stats" click)
+        gobject.GObject.emit (self.filters.Button2, "clicked");
     #end def __init__
 
     def addGrid(self, vbox, query, numTourneys, tourneyTypes, playerids, sitenos, seats):

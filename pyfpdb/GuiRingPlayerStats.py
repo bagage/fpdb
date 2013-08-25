@@ -22,6 +22,7 @@ import traceback
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 import sys
 from time import time, strftime
@@ -219,6 +220,8 @@ class GuiRingPlayerStats:
 
         self.last_pos = -1
 
+        #update the graph at entry (simulate a "Refresh stats" click)
+        gobject.GObject.emit (self.filters.Button2, "clicked");
 
     def get_vbox(self):
         """returns the vbox of this thread"""

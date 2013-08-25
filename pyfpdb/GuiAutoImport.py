@@ -144,6 +144,9 @@ class GuiAutoImport:
         self.mainVBox.show_all()
         self.addText(_("Auto Import Ready."))
 
+        #update the graph at entry (simulate a "Start Auto Import" click)
+        gobject.GObject.emit (self.startButton, "clicked");
+
     def addText(self, text):
         end_iter = self.textbuffer.get_end_iter()
         self.textbuffer.insert(end_iter, text)

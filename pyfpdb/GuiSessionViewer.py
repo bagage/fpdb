@@ -22,6 +22,7 @@ import sys
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 import traceback
 from time import time, strftime, localtime, gmtime
@@ -140,6 +141,9 @@ class GuiSessionViewer:
         main_vbox.pack1(self.graphBox)
         main_vbox.pack2(self.stats_frame)
         self.main_hbox.show()
+
+        #update the graph at entry (simulate a "Refresh" click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
 
         # make sure Hand column is not displayed
         #[x for x in self.columns if x[0] == 'hand'][0][1] = False

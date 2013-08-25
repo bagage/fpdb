@@ -21,6 +21,7 @@ _ = L10n.get_translation()
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gobject
 import os
 from time import time, strftime
     
@@ -129,6 +130,8 @@ class GuiPositionalStats:
         self.main_hbox.pack2(self.stats_frame)
         self.main_hbox.show()
 
+        #update the graph at entry (simulate a "Refresh" click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
 
     def get_vbox(self):
         """returns the vbox of this thread"""

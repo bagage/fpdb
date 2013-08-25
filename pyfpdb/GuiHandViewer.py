@@ -173,6 +173,9 @@ class GuiHandViewer:
         self.deck_instance = Deck.Deck(self.config, height=42, width=30)
         card_images = self.init_card_images(self.config)
        
+         #update the graph at entry (simulate a "Load Hands" click)
+        gobject.GObject.emit (self.filters.Button1, "clicked");
+
     def init_card_images(self, config):
         suits = ('s', 'h', 'd', 'c')
         ranks = (14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2)
