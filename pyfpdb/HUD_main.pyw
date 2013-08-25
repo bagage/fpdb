@@ -39,6 +39,8 @@ import logging
 
 #    pyGTK modules
 import gtk
+## Horrible hack to Get Icons shown on the windows theme buttons
+gtk.Settings.set_long_property(gtk.settings_get_default(), "gtk-button-images", gtk.TRUE, "main")
 import gobject
 
 #    FreePokerTools modules
@@ -169,24 +171,8 @@ class HUD_main(object):
         self.hud_dict[temp_key].max = max
         
         table.hud = self.hud_dict[temp_key]
-        
-        # set agg_bb_mult so that aggregate_tour and aggregate_ring can be ignored,
-        # agg_bb_mult == 1 means no aggregation after these if statements:
-        if type == "tour" and self.hud_params['aggregate_tour'] == False:
-            self.hud_dict[temp_key].hud_params['agg_bb_mult'] = 1
-        elif type == "ring" and self.hud_params['aggregate_ring'] == False:
-            self.hud_dict[temp_key].hud_params['agg_bb_mult'] = 1
-        if type == "tour" and self.hud_params['h_aggregate_tour'] == False:
-            self.hud_dict[temp_key].hud_params['h_agg_bb_mult'] = 1
-        elif type == "ring" and self.hud_params['h_aggregate_ring'] == False:
-            self.hud_dict[temp_key].hud_params['h_agg_bb_mult'] = 1
-        # sqlcoder: I forget why these are set to true (aren't they ignored from now on?)
-        # but I think it's needed:
-        self.hud_params['aggregate_ring'] = True
-        self.hud_params['h_aggregate_ring'] = True
-        # so maybe the tour ones should be set as well? does this fix the bug I see mentioned?
-        self.hud_params['aggregate_tour'] = True
-        self.hud_params['h_aggregate_tour'] = True
+    
+        self.hud_dict[temp_key].hud_params['new_max_seats'] = None #trigger for seat layout change
         #fixme - passing self.db_connection into another thread
         # is probably pointless.
         [aw.update_data(new_hand_id, self.db_connection) for aw in self.hud_dict[temp_key].aux_windows]
@@ -362,6 +348,20 @@ class HUD_main(object):
                 self.db_connection.init_hud_stat_vars( self.hud_params['hud_days'], self.hud_params['h_hud_days'] )
                 stat_dict = self.db_connection.get_stats_from_hand(new_hand_id, type, self.hud_params,
                                                                    self.hero_ids[site_id], num_seats)
+                
+                #Confirm our hero is seated for this hand, otherwise we must __not__ create a hud
+                # because it is impossible to work out who is sitting where, and that working-out
+                # of seat positions __only__ happens during creation.  (see Aux_Base.Aux_Seats.adj_seats())
+                #Fixes issue with 888/pacific which includes cash hands before the hero is dealt-in
+                hero_found = False
+                for key in stat_dict:
+                    if stat_dict[key]['screen_name'] == self.hero[site_id]:
+                        hero_found = True
+                        break
+                if not hero_found:
+                    log.info(_('hud not created yet, because hero is not seated for this hand'))
+                    continue
+                    
                 cards = self.get_cards(new_hand_id, poker_game)
                 table_kwargs = dict(table_name=table_name, tournament=tour_number, table_number=tab_number)
                 tablewindow = Tables.Table(self.config, site_name, **table_kwargs)

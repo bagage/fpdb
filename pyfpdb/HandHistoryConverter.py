@@ -550,7 +550,7 @@ or None if we fail to get the info """
 
         if givenTimezone in ("ET", "EST", "EDT"):
             givenTZ = timezone('US/Eastern')
-        elif givenTimezone in ("CET", "CEST", "MESZ", "HAEC"):
+        elif givenTimezone in ("CET", "CEST", "MEZ", "MESZ", "HAEC"):
             #since CEST will only be used in summer time it's ok to treat it as identical to CET.
             givenTZ = timezone('Europe/Berlin')
             #Note: Daylight Saving Time is standardised across the EU so this should be fine
@@ -581,11 +581,13 @@ or None if we fail to get the info """
             givenTZ = timezone('America/Argentina/Buenos_Aires')
         elif givenTimezone == 'BRT': # Brasilia Time
             givenTZ = timezone('America/Sao_Paulo')
+        elif givenTimezone == 'VET':
+            givenTZ = timezone('America/Caracas')
         elif givenTimezone == 'COT':
             givenTZ = timezone('America/Bogota')
         elif givenTimezone in ('EET', 'EEST'): # Eastern European Time
             givenTZ = timezone('Europe/Bucharest')
-        elif givenTimezone in ('MSK', 'MESZ', 'MSKS'): # Moscow Standard Time
+        elif givenTimezone in ('MSK', 'MESZ', 'MSKS', 'GST'): # Moscow Standard Time
             givenTZ = timezone('Europe/Moscow')
         elif givenTimezone in ('YEKT','YEKST'):
             givenTZ = timezone('Asia/Yekaterinburg')

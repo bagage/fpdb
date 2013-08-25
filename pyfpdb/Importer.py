@@ -56,7 +56,6 @@ class Importer:
         self.filelist   = {}
         self.dirlist    = {}
         self.siteIds    = {}
-        self.addToDirList = {}
         self.removeFromFileList = {} # to remove deleted files
         self.monitor    = False
         self.updatedsize = {}
@@ -216,7 +215,7 @@ class Importer:
     #Only one import directory per site supported.
     #dirlist is a hash of lists:
     #dirlist{ 'PokerStars' => ["/path/to/import/", "filtername"] }
-    def addImportDirectory(self,dir,monitor=False, site="default", filter="passthrough"):
+    def addImportDirectory(self,dir,monitor=False, site=("default","hh"), filter="passthrough"):
         #gets called by GuiAutoImport.
         #This should really be using os.walk
         #http://docs.python.org/library/os.html
@@ -226,12 +225,13 @@ class Importer:
                 self.dirlist[site] = [dir] + [filter]
 
             #print "addImportDirectory: checking files in", dir
-            for file in os.listdir(dir):
-                filename = os.path.join(dir, file)
-                if (time() - os.stat(filename).st_mtime)<= 43200: # look all files modded in the last 12 hours
+            for subdir in os.walk(dir):
+                for file in subdir[2]:
+                    filename = os.path.join(subdir[0], file)
+                    if (time() - os.stat(filename).st_mtime)<= 43200: # look all files modded in the last 12 hours
                                                                     # need long time because FTP in Win does not
                                                                     # update the timestamp on the HH during session
-                    self.addImportFile(filename, "auto")
+                        self.addImportFile(filename, "auto")
         else:
             log.warning(_("Attempted to add non-directory '%s' as an import directory") % str(dir))
 
@@ -250,12 +250,12 @@ class Importer:
         (totstored, totdups, totpartial, toterrors) = self.importFiles(None)
 
         # Tidying up after import
-        if 'dropHudCache' in self.settings and self.settings['dropHudCache'] == 'drop':
-            log.info(_("rebuild_caches"))
-            self.database.rebuild_caches()
-        else:
-            log.info(_("runPostImport"))
-            self.runPostImport()
+        #if 'dropHudCache' in self.settings and self.settings['dropHudCache'] == 'drop':
+        #    log.info(_("rebuild_caches"))
+        #    self.database.rebuild_caches()
+        #else:
+        #    log.info(_("runPostImport"))
+        self.runPostImport()
         self.database.analyzeDB()
         endtime = time()
         return (totstored, totdups, totpartial, toterrors, endtime-starttime)
@@ -359,8 +359,8 @@ class Importer:
     #Run import on updated files, then store latest update time. Called from GuiAutoImport.py
     def runUpdated(self):
         """Check for new files in monitored directories"""
-        for site in self.dirlist:
-            self.addImportDirectory(self.dirlist[site][0], False, site, self.dirlist[site][1])
+        for (site,type) in self.dirlist:
+            self.addImportDirectory(self.dirlist[(site,type)][0], False, (site,type), self.dirlist[(site,type)][1])
 
         for f in self.filelist:
             if os.path.exists(f):
@@ -392,13 +392,10 @@ class Importer:
             else:
                 self.removeFromFileList[f] = True
 
-        self.addToDirList = filter(lambda x: self.addImportDirectory(x, True, self.addToDirList[x][0], self.addToDirList[x][1]), self.addToDirList)
-
         for file in self.removeFromFileList:
             if file in self.filelist:
                 del self.filelist[file]
 
-        self.addToDirList = {}
         self.removeFromFileList = {}
         self.database.rollback()
         self.runPostImport()
@@ -406,9 +403,6 @@ class Importer:
     def _import_hh_file(self, fpdbfile):
         """Function for actual import of a hh file
             This is now an internal function that should not be called directly."""
-        #if os.path.isdir(fpdbfile.path):
-        #    self.addToDirList[file] = [site] + [filter]
-        #    return (0,0,0,0,0)
 
         (stored, duplicates, partial, errors, ttime) = (0, 0, 0, 0, time())
 
@@ -424,8 +418,8 @@ class Importer:
             else: self.pos_in_file[fpdbfile.path], idx = 0, 0
                 
             hhc = obj( self.config, in_path = fpdbfile.path, index = idx, autostart=False
-                      ,starsArchive = self.settings['starsArchive']
-                      ,ftpArchive   = self.settings['ftpArchive']
+                      ,starsArchive = fpdbfile.archive
+                      ,ftpArchive   = fpdbfile.archive
                       ,sitename     = fpdbfile.site.name)
             hhc.setAutoPop(self.mode=='auto')
             hhc.start()
@@ -584,9 +578,11 @@ class Importer:
             for j, summaryText in enumerate(summaryTexts, start=1):
                 doinsert = len(summaryTexts)==j
                 try:
-                    conv = obj(db=self.database, config=self.config, siteName=fpdbfile.site.name, summaryText=summaryText, in_path = fpdbfile.path)
+                    conv = obj(db=self.database, config=self.config, siteName=fpdbfile.site.name, summaryText=summaryText, in_path = fpdbfile.path, header=summaryTexts[0])
                     self.database.resetBulkCache(False)
                     conv.insertOrUpdate(printtest = self.settings['testData'])
+                except Exceptions.FpdbHandPartial, e:
+                    partial += 1
                 except FpdbParseError, e:
                     log.error(_("Summary import parse error in file: %s") % fpdbfile.path)
                     errors += 1
@@ -596,7 +592,7 @@ class Importer:
             ####Lock Placeholder####
 
         ttime = time() - ttime
-        return (imported - errors, duplicates, partial, errors, ttime)
+        return (imported - errors - partial, duplicates, partial, errors, ttime)
 
     def progressNotify(self):
         "A callback to the interface while events are pending"

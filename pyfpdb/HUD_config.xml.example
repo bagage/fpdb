@@ -5,14 +5,14 @@
     <!-- config_wrap_len  is preferred max line length in this file, -1 means no max
          day_start        is time that logical day starts, e.g. 5 means that any play
                           between 00:00 and 04:59:59 counts as being on the previous day -->
-    <general version="81"
+    <general version="83"
              config_wrap_len="-1"
              day_start="5"
              ui_language="system"
              config_difficulty="expert"
             />
 
-    <import callFpdbHud = "True" interval = "5"  fastStoreHudCache="False" saveActions="True" cacheSessions="False" sessionTimeout="30"></import>
+    <import callFpdbHud = "True" interval = "5"  fastStoreHudCache="False" saveActions="True" cacheSessions="False" sessionTimeout="30" publicDB="False"></import>
 
 
     <gui_cash_stats>
@@ -70,16 +70,6 @@
         - defaults to 90
         - value not used by default as it depends on stat_range setting
 
-    aggregate_ring_game_stats :
-        - True/False
-        - if set to True, opponents stats include other blind levels during ring games
-        - defaults to False
-
-    aggregate_tourney_stats :
-        - True/False
-        - if set to True, opponents stats include other blind levels during tourneys
-        - defaults to True
-
     aggregation_level_multiplier :
         - float value
         - defines how many blind levels are included in stats displayed in HUD
@@ -89,7 +79,7 @@
           times the current level are included in the stats displayed in the HUD
         - e.g. if current big blind is 50, stats for blind levels from big blind
           of 16.7 (50 divided by 3) to big blind of 150 (50 times 3) are included
-
+        - To include all levels, use a value of "10000"
 
     The following values define how hero's stats are done, the first 2 determine
     the time period stats are displayed for, the next 3 determine what blind levels
@@ -109,16 +99,6 @@
         - defaults to 30
         - value not used by default as it depends on hero_stat_range setting
 
-    aggregate_hero_ring_game_stats :
-        - True/False
-        - if set to True, hero's stats are calculated over multiple blind levels
-        - defaults to False
-
-    aggregate_hero_tourney_stats :
-        - True/False
-        - if set to True, hero's stats are calculated over multiple blind levels
-        - defaults to False
-
     hero_aggregation_level_multiplier :
         - float value
         - defines how many blind levels are included in stats displayed in HUD
@@ -127,20 +107,24 @@
         - defaults to 1, meaning only stats from current blind level are included
         - e.g. if set to 3 and current big blind is 50, stats for blind levels from
           16.7 (50 divided by 3) to big blind of 150 (50 times 3) are included
+        - To include all levels, use a value of "10000"
 -->
     <hud_ui
     stat_range="A"
     stat_days="90"
-    aggregate_ring_game_stats="False"
-    aggregate_tourney_stats="True"
     aggregation_level_multiplier="3"
+    seats_style="A"
+    seats_cust_nums_low="6"
+    seats_cust_nums_high="10"
+    
 
     hero_stat_range="A" 
     hero_stat_days="30"
-    aggregate_hero_ring_game_stats="False"
-    aggregate_hero_tourney_stats="False"
     hero_aggregation_level_multiplier="1"
-
+    hero_seats_style="A"
+    hero_seats_cust_nums_low="6"
+    hero_seats_cust_nums_high="10"
+    
     label="FPDBmenu"
     
     card_ht="39"
@@ -443,6 +427,23 @@
             <fav max="8" fav_seat="0"/>
             <fav max="9" fav_seat="0"/>
             <fav max="10" fav_seat="0"/>
+        </site>    
+        
+        <site site_name="SealsWithClubs"
+                enabled="False"
+                screen_name="YOUR SCREEN NAME HERE" 
+                site_path="C:/Program Files/SealsWithClubs/handhistories"
+                HH_path="C:/Program Files/SealsWithClubs/handhistories"
+                aux_enabled="True" hud_menu_xshift="0" hud_menu_yshift="0">
+            <email fetchType="request-summary" host="YOUR_EMAIL_SERVER" username="YOUR_EMAIL_USERNAME" password="YOUR_EMAIL_PASSWORD" useSsl="True" folder="INBOX"/>
+            <layout_set game_type="all" ls="sealswithclubs_default"/>
+            <fav max="2" fav_seat="0"/>
+            <fav max="4" fav_seat="0"/>
+            <fav max="6" fav_seat="0"/>
+            <fav max="7" fav_seat="0"/>
+            <fav max="8" fav_seat="0"/>
+            <fav max="9" fav_seat="0"/>
+            <fav max="10" fav_seat="0"/>
         </site>        
     </supported_sites>
 
@@ -510,6 +511,9 @@
         <game game_name="a5_3draw" aux="Classic_HUD, mucked">
             <game_stat_set game_type="all" stat_set ="draw_default"/>
         </game>  
+        <game game_name="6_omahahi" aux="Classic_HUD, mucked" >
+            <game_stat_set game_type="all" stat_set="omaha_default"/>
+        </game>
     </supported_games>
 
 
@@ -770,15 +774,15 @@
                 <location common="1" x="323" y="232"/>
             </layout>
             <layout max="9" height="546" width="792">
-                <location seat="1" x="663" y="48"/>
-                <location seat="2" x="694" y="205"/>
-                <location seat="3" x="682" y="325"/>
-                <location seat="4" x="630" y="393"/>
-                <location seat="5" x="429" y="410"/>
-                <location seat="6" x="231" y="392"/>
-                <location seat="7" x="8" y="332"/>
-                <location seat="8" x="10" y="204"/>
-                <location seat="9" x="10" y="48"/>
+                <location seat="1" x="560" y="10"/>
+                <location seat="2" x="690" y="80"/>
+                <location seat="3" x="670" y="230"/>
+                <location seat="4" x="550" y="355"/>
+                <location seat="5" x="350" y="385"/>
+                <location seat="6" x="150" y="355"/>
+                <location seat="7" x="15" y="230"/>
+                <location seat="8" x="10" y="80"/>
+                <location seat="9" x="150" y="10"/>
                 <location common="1" x="323" y="232"/>
             </layout>
             <layout max="10" height="546" width="792">
@@ -1634,6 +1638,76 @@
                 <location common="1" x="316" y="237"/>
             </layout>
         </ls>
+        
+        <ls name="sealswithclubs_default">
+            <layout max="2" height="546" width="792">
+                <location seat="1" x="681" y="221"/>
+                <location seat="2" x="2" y="221"/>
+                <location common="1" x="323" y="232"/>
+            </layout>
+            <layout max="4" height="546" width="792">
+                <location seat="1" x="573" y="41"/>
+                <location seat="2" x="512" y="411"/>
+                <location seat="3" x="162" y="413"/>
+                <location seat="4" x="112" y="41"/>
+                <location common="1" x="323" y="232"/>
+            </layout>
+            <layout max="6" height="546" width="792">
+                <location seat="1" x="663" y="48"/>
+                <location seat="2" x="664" y="293"/>
+                <location seat="3" x="563" y="402"/>
+                <location seat="4" x="120" y="401"/>
+                <location seat="5" x="32" y="291"/>
+                <location seat="6" x="12" y="46"/>
+                <location common="1" x="323" y="232"/>
+            </layout>
+            <layout max="7" height="546" width="792">
+                <location seat="1" x="643" y="99"/>
+                <location seat="2" x="660" y="290"/>
+                <location seat="3" x="633" y="393"/>
+                <location seat="4" x="427" y="409"/>
+                <location seat="5" x="224" y="393"/>
+                <location seat="6" x="-4" y="290"/>
+                <location seat="7" x="-4" y="100"/>
+                <location common="1" x="323" y="232"/>
+            </layout>
+            <layout max="8" height="546" width="792">
+                <location seat="1" x="573" y="41"/>
+                <location seat="2" x="681" y="221"/>
+                <location seat="3" x="686" y="338"/>
+                <location seat="4" x="512" y="411"/>
+                <location seat="5" x="162" y="413"/>
+                <location seat="6" x="3" y="339"/>
+                <location seat="7" x="2" y="221"/>
+                <location seat="8" x="112" y="41"/>
+                <location common="1" x="323" y="232"/>
+            </layout>
+            <layout max="9" height="546" width="792">
+                <location seat="1" x="663" y="48"/>
+                <location seat="2" x="694" y="205"/>
+                <location seat="3" x="682" y="325"/>
+                <location seat="4" x="630" y="393"/>
+                <location seat="5" x="429" y="410"/>
+                <location seat="6" x="231" y="392"/>
+                <location seat="7" x="8" y="332"/>
+                <location seat="8" x="10" y="204"/>
+                <location seat="9" x="10" y="48"/>
+                <location common="1" x="323" y="232"/>
+            </layout>
+            <layout max="10" height="546" width="792">
+                <location seat="1" x="531" y="14"/>
+                <location seat="2" x="678" y="66"/>
+                <location seat="3" x="669" y="278"/>
+                <location seat="4" x="682" y="351"/>
+                <location seat="5" x="508" y="411"/>
+                <location seat="6" x="183" y="411"/>
+                <location seat="7" x="11" y="352"/>
+                <location seat="8" x="1" y="277"/>
+                <location seat="9" x="6" y="65"/>
+                <location seat="10" x="159" y="11"/>
+                <location common="1" x="316" y="237"/>
+            </layout>
+        </ls>
     </layout_sets>
 
     <stat_sets>
@@ -1973,6 +2047,7 @@
         <hhc site="Microgaming" converter="MicrogamingToFpdb"/>
         <hhc site="Bovada" converter="BovadaToFpdb" summaryImporter="BovadaSummary"/>
         <hhc site="Enet" converter="EnetToFpdb"/>
+        <hhc site="SealsWithClubs" converter="SealsWithClubsToFpdb"/>
     </hhcs>
 
 

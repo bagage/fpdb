@@ -30,11 +30,9 @@ import logging
 # logging has been set up in fpdb.py or HUD_main.py, use their settings:
 log = logging.getLogger("parser")
 
-__ARCHIVE_PRE_HEADER_REGEX, re_SplitArchive = {}, {}
-__ARCHIVE_PRE_HEADER_REGEX['PokerStars'] = '^Hand #(\d+)\s*$'
-__ARCHIVE_PRE_HEADER_REGEX['Fulltilt'] ='\*{20}\s#\s\d+\s\*{20,25}\s?'
-re_SplitArchive['PokerStars'] = re.compile(__ARCHIVE_PRE_HEADER_REGEX['PokerStars'], re.MULTILINE)
-re_SplitArchive['Fulltilt'] = re.compile(__ARCHIVE_PRE_HEADER_REGEX['Fulltilt'], re.MULTILINE)
+re_SplitArchive  = {}
+re_SplitArchive['PokerStars'] = re.compile(r'(?P<SPLIT>^Hand #(\d+)\s*$)', re.MULTILINE)
+re_SplitArchive['Fulltilt'] = re.compile(r'(?P<SPLIT>(\*{20}\s#\s\d+\s\*{20,25}\s?)|(BEGIN\s*FullTiltPoker))', re.MULTILINE)
 
 class FPDBFile:
     path = ""
@@ -42,6 +40,7 @@ class FPDBFile:
     site = None
     kodec = None
     archive = False
+    archiveSplit = ''
     gametype = False
     hero = '-'
 
@@ -76,7 +75,7 @@ class Site:
             line_delimiter = '\n\n'
         elif filter_name == 'Fulltilt' or filter_name == 'PokerTracker':
             line_delimiter = '\n\n\n'
-        elif self.re_SplitHands.match('\n\n') and filter_name not in ('Entraction'):
+        elif self.re_SplitHands.match('\n\n') and filter_name != 'Entraction':
              line_delimiter = '\n\n'
         elif self.re_SplitHands.match('\n\n\n'):
             line_delimiter = '\n\n\n'
@@ -132,27 +131,28 @@ class IdentifySite:
     
     def getSiteRegex(self):
         re_identify = {}
-        re_identify['Fulltilt']     = re.compile(u'FullTiltPoker|Full\sTilt\sPoker\sGame\s#\d+:|Full\sTilt\sPoker\.fr')
-        re_identify['PokerStars']   = re.compile(u'(PokerStars|POKERSTARS)(\sGame|\sHand|\sHome\sGame|\sHome\sGame\sHand|Game|\sZoom\sHand|\sGAME)\s\#\d+:')
-        re_identify['Everleaf']     = re.compile(u'\*{5}\sHand\shistory\sfor\sgame\s#\d+\s|Partouche\sPoker\s')
-        re_identify['Boss']         = re.compile(u'<HISTORY\sID="\d+"\sSESSION=')
-        re_identify['OnGame']       = re.compile(u'\*{5}\sHistory\sfor\shand\s[A-Z0-9\-]+\s')
-        re_identify['Betfair']      = re.compile(u'\*{5}\sBetfair\sPoker\sHand\sHistory\sfor\sGame\s\d+\s')
-        re_identify['Absolute']     = re.compile(u'Stage\s#[A-Z0-9]+:')
-        re_identify['PartyPoker']   = re.compile(u'\*{5}\sHand\sHistory\s[fF]or\sGame\s\d+\s')
-        re_identify['PacificPoker'] = re.compile(u'\*{5}\sCassava\sHand\sHistory\sfor\sGame\s\d+\s')
-        re_identify['Merge']        = re.compile(u'<description\stype=')
-        re_identify['Pkr']          = re.compile(u'Starting\sHand\s\#\d+')
-        re_identify['iPoker']       = re.compile(u'<session\ssessioncode="\-?\d+">')
-        re_identify['Winamax']      = re.compile(u'Winamax\sPoker\s\-\s(CashGame|Tournament\s")')
-        re_identify['Everest']      = re.compile(u'<SESSION\stime="\d+"\stableName=".+"\sid=')
-        re_identify['Cake']         = re.compile(u'Hand\#[A-Z0-9]+\s\-\s')
-        re_identify['Entraction']   = re.compile(u'Game\s\#\s\d+\s\-\s')
-        re_identify['BetOnline']    = re.compile(u'(BetOnline\sPoker|PayNoRake|ActionPoker\.com|Gear\sPoker)\sGame\s\#\d+')
-        re_identify['PokerTracker'] = re.compile(u'(EverestPoker\sGame\s\#|GAME\s\#|MERGE_GAME\s\#|\*{2}\sGame\sID\s)\d+')
-        re_identify['Microgaming']  = re.compile(u'<Game\s(hhversion="\d"\s)?id=\"\d+\"\sdate=\"[\d\-\s:]+\"\sunicodetablename')
-        re_identify['Bovada']       = re.compile(u'(Bovada|Bodog(\sUK|\sCanada|88)?)\sHand')
-        re_identify['Enet']         = re.compile(u'^Game\s\#\d+:')
+        re_identify['Fulltilt']       = re.compile(u'FullTiltPoker|Full\sTilt\sPoker\sGame\s#\d+:|Full\sTilt\sPoker\.fr')
+        re_identify['PokerStars']     = re.compile(u'(PokerStars|POKERSTARS)(\sGame|\sHand|\sHome\sGame|\sHome\sGame\sHand|Game|\sZoom\sHand|\sGAME)\s\#\d+:')
+        re_identify['Everleaf']       = re.compile(u'\*{5}\sHand\shistory\sfor\sgame\s#\d+\s|Partouche\sPoker\s')
+        re_identify['Boss']           = re.compile(u'<HISTORY\sID="\d+"\sSESSION=')
+        re_identify['OnGame']         = re.compile(u'\*{5}\sHistory\sfor\shand\s[A-Z0-9\-]+\s')
+        re_identify['Betfair']        = re.compile(u'\*{5}\sBetfair\sPoker\sHand\sHistory\sfor\sGame\s\d+\s')
+        re_identify['Absolute']       = re.compile(u'Stage\s#[A-Z0-9]+:')
+        re_identify['PartyPoker']     = re.compile(u'\*{5}\sHand\sHistory\s[fF]or\sGame\s\d+\s')
+        re_identify['PacificPoker']   = re.compile(u'\*{5}\sCassava\sHand\sHistory\sfor\sGame\s\d+\s')
+        re_identify['Merge']          = re.compile(u'<description\stype=')
+        re_identify['Pkr']            = re.compile(u'Starting\sHand\s\#\d+')
+        re_identify['iPoker']         = re.compile(u'<session\ssessioncode="\-?\d+">')
+        re_identify['Winamax']        = re.compile(u'Winamax\sPoker\s\-\s(CashGame|Tournament\s")')
+        re_identify['Everest']        = re.compile(u'<SESSION\stime="\d+"\stableName=".+"\sid=')
+        re_identify['Cake']           = re.compile(u'Hand\#[A-Z0-9]+\s\-\s')
+        re_identify['Entraction']     = re.compile(u'Game\s\#\s\d+\s\-\s')
+        re_identify['BetOnline']      = re.compile(u'(BetOnline\sPoker|PayNoRake|ActionPoker\.com|Gear\sPoker)\sGame\s\#\d+')
+        re_identify['PokerTracker']   = re.compile(u'(EverestPoker\sGame\s\#|GAME\s\#|MERGE_GAME\s\#|\*{2}\sGame\sID\s)\d+')
+        re_identify['Microgaming']    = re.compile(u'<Game\s(hhversion="\d"\s)?id=\"\d+\"\sdate=\"[\d\-\s:]+\"\sunicodetablename')
+        re_identify['Bovada']         = re.compile(u'(Bovada|Bodog(\sUK|\sCanada|88)?)\sHand')
+        re_identify['Enet']           = re.compile(u'^Game\s\#\d+:')
+        re_identify['SealsWithClubs'] = re.compile(u"Site:\s*Seals\s*With\s*Clubs")
         re_identify['FullTiltPokerSummary'] = re.compile(u'Full\sTilt\sPoker\.fr\sTournament|Full\sTilt\sPoker\sTournament\sSummary')
         re_identify['PokerStarsSummary']    = re.compile(u'PokerStars\sTournament\s\#\d+')
         re_identify['PacificPokerSummary']  = re.compile(u'\*{5}\sCassava Tournament Summary\s\*{5}')
@@ -220,8 +220,10 @@ class IdentifySite:
             filter_name = site.filter_name
             m = site.re_Identify.search(whole_file)
             if m and filter_name in ('Fulltilt', 'PokerStars'):
-                if re_SplitArchive[filter_name].search(whole_file):
+                m1 = re_SplitArchive[filter_name].search(whole_file)
+                if m1:
                     f.archive = True
+                    f.archiveSplit = m1.group('SPLIT')
             if m:
                 f.site = site
                 f.ftype = "hh"

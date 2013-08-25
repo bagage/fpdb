@@ -55,7 +55,7 @@ import ConfigParser
 #  out of date.
 # The CONFIG_VERSION should be incremented __ONLY__ if the add_missing_elements()
 #  method cannot update existing standard configurations
-CONFIG_VERSION = 81
+CONFIG_VERSION = 83
 
 #
 # Setup constants
@@ -592,13 +592,14 @@ class Import:
         self.hhBulkPath         = node.getAttribute("hhBulkPath")
         self.saveActions        = string_to_bool(node.getAttribute("saveActions")      , default=False)
         self.cacheSessions      = string_to_bool(node.getAttribute("cacheSessions")    , default=False)
+        self.publicDB           = string_to_bool(node.getAttribute("publicDB")         , default=False)
         self.callFpdbHud        = string_to_bool(node.getAttribute("callFpdbHud")      , default=False)
         self.fastStoreHudCache  = string_to_bool(node.getAttribute("fastStoreHudCache"), default=False)
         self.saveStarsHH        = string_to_bool(node.getAttribute("saveStarsHH")      , default=False)
 
     def __str__(self):
-        return "    interval = %s\n    callFpdbHud = %s\n    saveActions = %s\n    fastStoreHudCache = %s\nResultsDirectory = %s" \
-            % (self.interval, self.callFpdbHud, self.saveActions, self.cacheSessions, self.sessionTimeout, self.fastStoreHudCache, self.ResultsDirectory)
+        return "    interval = %s\n    callFpdbHud = %s\n    saveActions = %s\n   cacheSessions = %s\n    publicDB = %s\n    sessionTimeout = %s\n    fastStoreHudCache = %s\n    ResultsDirectory = %s" \
+            % (self.interval, self.callFpdbHud, self.saveActions, self.cacheSessions, self.publicDB, self.sessionTimeout, self.fastStoreHudCache, self.ResultsDirectory)
 
 class HudUI:
     def __init__(self, node):
@@ -609,17 +610,19 @@ class HudUI:
         if node.hasAttribute('deck_type'): self.deck_type = node.getAttribute('deck_type')
         if node.hasAttribute('card_back'): self.card_back = node.getAttribute('card_back')
         #
-        if node.hasAttribute('stat_range'): self.hud_style = node.getAttribute('stat_range')
+        if node.hasAttribute('stat_range'): self.stat_range = node.getAttribute('stat_range')
         if node.hasAttribute('stat_days'): self.hud_days = node.getAttribute('stat_days')
-        if node.hasAttribute('aggregate_ring_game_stats'): self.aggregate_ring = string_to_bool(node.getAttribute('aggregate_ring_game_stats'))
-        if node.hasAttribute('aggregate_tourney_stats'): self.aggregate_tour = string_to_bool(node.getAttribute('aggregate_tourney_stats'))
         if node.hasAttribute('aggregation_level_multiplier'): self.agg_bb_mult = node.getAttribute('aggregation_level_multiplier')
+        if node.hasAttribute('seats_style'): self.seats_style = node.getAttribute('seats_style')
+        if node.hasAttribute('seats_cust_nums_low'): self.seats_cust_nums_low = node.getAttribute('seats_cust_nums_low')
+        if node.hasAttribute('seats_cust_nums_high'): self.seats_cust_nums_high = node.getAttribute('seats_cust_nums_high')
         #
-        if node.hasAttribute('hero_stat_range'): self.h_hud_style = node.getAttribute('hero_stat_range')
+        if node.hasAttribute('hero_stat_range'): self.h_stat_range = node.getAttribute('hero_stat_range')
         if node.hasAttribute('hero_stat_days'): self.h_hud_days = node.getAttribute('hero_stat_days')
-        if node.hasAttribute('aggregate_hero_ring_game_stats'): self.h_aggregate_ring = string_to_bool(node.getAttribute('aggregate_hero_ring_game_stats'))
-        if node.hasAttribute('aggregate_hero_tourney_stats'): self.h_aggregate_tour = string_to_bool(node.getAttribute('aggregate_hero_tourney_stats'))
         if node.hasAttribute('hero_aggregation_level_multiplier'): self.h_agg_bb_mult = node.getAttribute('hero_aggregation_level_multiplier')
+        if node.hasAttribute('hero_seats_style'): self.h_seats_style = node.getAttribute('hero_seats_style')
+        if node.hasAttribute('hero_seats_cust_nums_low'): self.h_seats_cust_nums_low = node.getAttribute('hero_seats_cust_nums_low')
+        if node.hasAttribute('hero_seats_cust_nums_high'): self.h_seats_cust_nums_high = node.getAttribute('hero_seats_cust_nums_high')
 
 
     def __str__(self):
@@ -1373,17 +1376,11 @@ class Config:
         try:    hui['card_back']      = unicode(self.ui.card_back)
         except: hui['card_back']        = u'back04'
                 
-        try:    hui['hud_style']        = self.ui.hud_style
-        except: hui['hud_style']        = 'A'  # default is show stats for All-time, also S(session) and T(ime)
+        try:    hui['stat_range']        = self.ui.stat_range
+        except: hui['stat_range']        = 'A'  # default is show stats for All-time, also S(session) and T(ime)
 
         try:    hui['hud_days']        = int(self.ui.hud_days)
         except: hui['hud_days']        = 90
-
-        try:    hui['aggregate_ring']   = self.ui.aggregate_ring
-        except: hui['aggregate_ring']   = False
-
-        try:    hui['aggregate_tour']   = self.ui.aggregate_tour
-        except: hui['aggregate_tour']   = True
 
         try:    hui['agg_bb_mult']    = int(self.ui.agg_bb_mult)
         except: hui['agg_bb_mult']    = 1
@@ -1391,22 +1388,18 @@ class Config:
         try:    hui['seats_style']    = self.ui.seats_style
         except: hui['seats_style']    = 'A'  # A / C / E, use A(ll) / C(ustom) / E(xact) seat numbers
 
-        try:    hui['seats_cust_nums']    = self.ui.seats_cust_nums
-        except: hui['seats_cust_nums']    = ['n/a', 'n/a', (2,2), (3,4), (3,5), (4,6), (5,7), (6,8), (7,9), (8,10), (8,10)]
-
+        try:    hui['seats_cust_nums_low']    = int(self.ui.seats_cust_nums_low)
+        except: hui['seats_cust_nums_low']    = 1
+        try:    hui['seats_cust_nums_high']    = int(self.ui.seats_cust_nums_high)
+        except: hui['seats_cust_nums_high']    = 10
+          
         # Hero specific
 
-        try:    hui['h_hud_style']    = self.ui.h_hud_style
-        except: hui['h_hud_style']    = 'S'
+        try:    hui['h_stat_range']    = self.ui.h_stat_range
+        except: hui['h_stat_range']    = 'S'
 
         try:    hui['h_hud_days']     = int(self.ui.h_hud_days)
         except: hui['h_hud_days']     = 30
-
-        try:    hui['h_aggregate_ring'] = self.ui.h_aggregate_ring
-        except: hui['h_aggregate_ring'] = False
-
-        try:    hui['h_aggregate_tour'] = self.ui.h_aggregate_tour
-        except: hui['h_aggregate_tour'] = True
 
         try:    hui['h_agg_bb_mult']    = int(self.ui.h_agg_bb_mult)
         except: hui['h_agg_bb_mult']    = 1
@@ -1414,9 +1407,10 @@ class Config:
         try:    hui['h_seats_style']    = self.ui.h_seats_style
         except: hui['h_seats_style']    = 'A'  # A / C / E, use A(ll) / C(ustom) / E(xact) seat numbers
 
-        try:    hui['h_seats_cust_nums']    = self.ui.h_seats_cust_nums
-        except: hui['h_seats_cust_nums']    = ['n/a', 'n/a', (2,2), (3,4), (3,5), (4,6), (5,7), (6,8), (7,9), (8,10), (8,10)]
-
+        try:    hui['h_seats_cust_nums_low']    = int(self.ui.h_seats_cust_nums_low)
+        except: hui['h_seats_cust_nums_low']    = 1
+        try:    hui['h_seats_cust_nums_high']    = int(self.ui.h_seats_cust_nums_high)
+        except: hui['h_seats_cust_nums_high']    = 10
         return hui
 
 
@@ -1445,6 +1439,9 @@ class Config:
         
         try:    imp['cacheSessions']     = self.imp.cacheSessions
         except:  imp['cacheSessions']     = False
+        
+        try:    imp['publicDB']     = self.imp.publicDB
+        except:  imp['publicDB']     = False
         
         try:    imp['sessionTimeout']     = self.imp.sessionTimeout
         except:  imp['sessionTimeout']     = 30
