@@ -602,7 +602,8 @@ class Database:
         self.printdata = False
         self.resetCache()
         self.resetBulkCache()
-        
+        self.publicDB = None
+
         if 'day_start' in gen:
             self.day_start = float(gen['day_start'])
             
