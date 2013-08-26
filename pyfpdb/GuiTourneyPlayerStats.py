@@ -74,6 +74,7 @@ class GuiTourneyPlayerStats:
         #     is column displayed, column heading, xalignment, formatting, celltype
         self.columns = [ ["siteName",       True,  _("Site"),    0.0, "%s", "str"]
                        #,["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
+                       , ["tourneyName",     True, _("TourneyName"), 0.0, "%s", "str"]
                        , ["category",       True,  _("Cat."),    0.0, "%s", "str"]
                        , ["limitType",      True,  _("Limit"),   0.0, "%s", "str"]
                        , ["currency",       True,  _("Curr."),   0.0, "%s", "str"]
@@ -232,6 +233,7 @@ class GuiTourneyPlayerStats:
         dates = self.filters.getDates()
         sitenos = []
         playerids = []
+        tourneysName = []
 
         # Which sites are selected?
         for site in sites:

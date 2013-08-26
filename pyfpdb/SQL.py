@@ -5124,6 +5124,7 @@ class Sql:
         if db_server == 'mysql':
             self.query['tourneyPlayerDetailedStats'] = """
                       select s.name                                                                 AS siteName
+                            ,t.tourneyName                                                          AS tourneyName
                             ,t.tourneyTypeId                                                        AS tourneyTypeId
                             ,tt.currency                                                            AS currency
                             ,(CASE
@@ -5168,6 +5169,7 @@ class Sql:
             # proper fix should use coalesce() or case ... when ... to work in all circumstances
             self.query['tourneyPlayerDetailedStats'] = """
                       select s.name                                                                 AS "siteName"
+                            ,t.tourneyName                                                          AS tourneyName
                             ,t.tourneyTypeId                                                        AS "tourneyTypeId"
                             ,tt.currency                                                            AS "currency"
                             ,(CASE
@@ -5212,6 +5214,7 @@ class Sql:
         elif db_server == 'sqlite':
             self.query['tourneyPlayerDetailedStats'] = """
                       select s.name                                                                 AS siteName
+                            ,t.tourneyName                                                          AS tourneyName
                             ,t.tourneyTypeId                                                        AS tourneyTypeId
                             ,tt.currency                                                            AS currency
                             ,(CASE
