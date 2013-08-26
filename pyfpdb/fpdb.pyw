@@ -66,6 +66,7 @@ import GuiTourneyPlayerStats
 import GuiTourneyViewer
 import GuiPositionalStats
 import GuiAutoImport
+import GuiBankrollGraphViewer
 import GuiGraphViewer
 import GuiTourneyGraphViewer
 import GuiSessionViewer
@@ -885,6 +886,7 @@ class fpdb:
                   <menuitem action="stove"/>
                 </menu>
                 <menu action="tournament">
+                  <menuitem action="bankrollgraphs"/>
                   <menuitem action="tourneygraphs"/>
                   <menuitem action="tourneyplayerstats"/>
                   <menuitem action="tourneyviewer"/>
@@ -926,6 +928,7 @@ class fpdb:
                                  ('tourneygraphs', None, _('Tourney Graphs'), None, 'TourneyGraphs', self.tabTourneyGraphViewer),
                                  ('stove', None, _('Stove (preview)'), None, 'Stove', self.tabStove),
                                  ('ringplayerstats', None, _('Ring _Player Stats'), _('<control>P'), 'Ring Player Stats ', self.tab_ring_player_stats),
+                                 ('bankrollgraphs', None, _('_Bankrolls'), _('<control>N'), 'Bankroll Graphs', self.tab_bankroll_graph_viewer),
                                  ('tourneyplayerstats', None, _('_Tourney Stats'), _('<control>T'), 'Tourney Stats ', self.tab_tourney_player_stats),
                                  ('tourneyviewer', None, _('Tourney _Viewer'), None, 'Tourney Viewer)', self.tab_tourney_viewer_stats),
                                  ('posnstats', None, _('P_ositional Stats (tabulated view)'), _('<control>O'), 'Positional Stats (tabulated view)', self.tab_positional_stats),
@@ -1162,6 +1165,12 @@ class fpdb:
         self.threads.append(new_ps_thread)
         ps_tab=new_ps_thread.get_vbox()
         self.add_and_display_tab(ps_tab, _("Ring Player Stats"))
+
+    def tab_bankroll_graph_viewer(self, widget, data=None):
+        new_gv_thread = GuiBankrollGraphViewer.GuiBankrollGraphViewer(self.settings, self.db, self.sql, self.config, self.window)
+        self.threads.append(new_gv_thread)
+        gv_tab = new_gv_thread.get_vbox()
+        self.add_and_display_tab(gv_tab, _("Bankroll Graphs"))
 
     def tab_tourney_player_stats(self, widget, data=None):
         new_ps_thread = GuiTourneyPlayerStats.GuiTourneyPlayerStats(self.config, self.db, self.sql, self.window)

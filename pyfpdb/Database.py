@@ -1560,6 +1560,7 @@ class Database:
         c.execute(self.sql.query['createWeeksCacheTable'])
         c.execute(self.sql.query['createMonthsCacheTable'])
         c.execute(self.sql.query['createSessionsCacheTable'])
+        c.execute(self.sql.query['createBankrollTable'])
         c.execute(self.sql.query['createTourneyTypesTable'])
         c.execute(self.sql.query['createTourneysTable'])
         c.execute(self.sql.query['createTourneysPlayersTable'])
