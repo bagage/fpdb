@@ -169,7 +169,7 @@ class DetectInstalledSites():
         dirs = os.listdir(hhp)
         try:
             self.herofound = dirs[0]
-            self.hhpathfound = self.hhpathfound + self.herofound + "/history"
+            self.hhpathfound = self.hhpathfound + "/" + self.herofound + "/history"
         except:
             pass
         return
