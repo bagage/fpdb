@@ -53,20 +53,9 @@ class GuiTourneyPlayerStats:
                             "Dates"     : True,
                             #"Groups"    : True,
                             #"GroupsAll" : True,
+                            "TabOps"      : True,
                             #"Button1"   : True,
                             "Button2"   : True}
-        
-        self.stats_frame = None
-        self.stats_vbox = None
-        self.detailFilters = []   # the data used to enhance the sql select
-
-        self.main_hbox = gtk.HPaned()
-
-        self.filters = TourneyFilters.TourneyFilters(self.db, self.conf, self.sql, display = filters_display)
-        #self.filters.registerButton1Name(_("_Filters"))
-        #self.filters.registerButton1Callback(self.showDetailFilter)
-        self.filters.registerButton2Name(_("_Refresh Stats"))
-        self.filters.registerButton2Callback(self.refreshStats)
         
         # ToDo: store in config
         # ToDo: create popup to adjust column config
@@ -75,6 +64,10 @@ class GuiTourneyPlayerStats:
         self.columns = [ ["siteName",       True,  _("Site"),    0.0, "%s", "str"]
                        #,["tourney",        False, _("Tourney"), 0.0, "%s", "str"]   # true not allowed for this line
                        , ["tourneyName",     True, _("TourneyName"), 0.0, "%s", "str"]
+                       , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
+                       , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]
+                       , ["spent",          True,  _("Spent"),   1.0, "%3.2f", "str"]
+                       , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
                        , ["category",       True,  _("Cat."),    0.0, "%s", "str"]
                        , ["limitType",      True,  _("Limit"),   0.0, "%s", "str"]
                        , ["currency",       True,  _("Curr."),   0.0, "%s", "str"]
@@ -83,14 +76,25 @@ class GuiTourneyPlayerStats:
                        , ["playerName",     False, _("Name"),    0.0, "%s", "str"]   # true not allowed for this line (set in code)
                        , ["tourneyCount",   True,  _("#"),       1.0, "%1.0f", "str"]
                        , ["itm",            True,  _("ITM%"),    1.0, "%3.2f", "str"]
-                       , ["_1st",           False, _("1st"),     1.0, "%1.0f", "str"]
+                       , ["_1st",           True, _("1st"),     1.0, "%1.0f", "str"]
                        , ["_2nd",           True,  _("2nd"),     1.0, "%1.0f", "str"]
                        , ["_3rd",           True,  _("3rd"),     1.0, "%1.0f", "str"]
                        , ["unknownRank",    True,  _("Rank?"),   1.0, "%1.0f", "str"]
-                       , ["spent",          True,  _("Spent"),   1.0, "%3.2f", "str"]
-                       , ["won",            True,  _("Won"),     1.0, "%3.2f", "str"]
-                       , ["roi",            True,  _("ROI%"),    1.0, "%3.0f", "str"]
-                       , ["profitPerTourney", True,_("$/Tour"),  1.0, "%3.2f", "str"]]
+                       ]
+
+        self.stats_frame = None
+        self.stats_vbox = None
+        self.detailFilters = []   # the data used to enhance the sql select
+
+        self.main_hbox = gtk.HPaned()
+
+        tabDisp = [[a[i] for i in (0, 1, 2)] for a in self.columns]
+        self.filters = TourneyFilters.TourneyFilters(self.db, self.conf, self.sql, display = filters_display, tabdisplay = tabDisp)
+
+        #self.filters.registerButton1Name(_("_Filters"))
+        #self.filters.registerButton1Callback(self.showDetailFilter)
+        self.filters.registerButton2Name(_("_Refresh Stats"))
+        self.filters.registerButton2Callback(self.refreshStats)
                        
         self.stats_frame = gtk.Frame()
         self.stats_frame.show()
@@ -129,7 +133,14 @@ class GuiTourneyPlayerStats:
         # pre-fetch some constant values:
         #self.cols_to_show = [x for x in self.columns if x[colshow]]
         #htourneytypeid_idx = colnames.index('tourneyTypeId')
-        self.cols_to_show = self.columns #TODO do i need above 2 lines?
+        tabOps = self.filters.getTabOps()
+        self.cols_to_show = []
+        for i in self.columns:
+            if tabOps[i[0]] == 'ON':
+                i[1] = True
+                self.cols_to_show.append(i) #TODO do i need above 2 lines?
+            else:
+                i[1] = False
         
         assert len(self.liststore) == grid, "len(self.liststore)="+str(len(self.liststore))+" grid-1="+str(grid)
         self.liststore.append( gtk.ListStore(*([str] * len(self.cols_to_show))) )
@@ -147,38 +158,40 @@ class GuiTourneyPlayerStats:
 
         # Create header row   eg column: ("game",     True, "Game",     0.0, "%s")
         for col, column in enumerate(self.cols_to_show):
-            if column[colalias] == 'game' and holecards:
-                s = [x for x in self.columns if x[colalias] == 'hand'][0][colheading]
-            else:
-                s = column[colheading]
-            self.listcols[grid].append(gtk.TreeViewColumn(s))
-            view.append_column(self.listcols[grid][col])
-            if column[colformat] == '%s':
-                if column[colxalign] == 0.0:
-                    self.listcols[grid][col].pack_start(textcell, expand=True)
-                    self.listcols[grid][col].add_attribute(textcell, 'text', col)
-                    cellrend = textcell
+            if tabOps[column[colalias]] == 'ON':
+                if column[colalias] == 'game' and holecards:
+                    s = [x for x in self.columns if x[colalias] == 'hand'][0][colheading]
                 else:
-                    self.listcols[grid][col].pack_start(textcell50, expand=True)
-                    self.listcols[grid][col].add_attribute(textcell50, 'text', col)
-                    cellrend = textcell50
-                self.listcols[grid][col].set_expand(True)
-            else:
-                self.listcols[grid][col].pack_start(numcell, expand=True)
-                self.listcols[grid][col].add_attribute(numcell, 'text', col)
-                self.listcols[grid][col].set_expand(True)
-                cellrend = numcell
-                #self.listcols[grid][col].set_alignment(column[colxalign]) # no effect?
-            self.listcols[grid][col].set_clickable(True)
-            self.listcols[grid][col].connect("clicked", self.sortCols, (col,grid))
-            if col == 0:
-                self.listcols[grid][col].set_sort_order(gtk.SORT_DESCENDING)
-                self.listcols[grid][col].set_sort_indicator(True)
-            if column[coltype] == 'cash':
-                self.listcols[grid][col].set_cell_data_func(numcell, self.ledger_style_render_func)
-            else:
-                self.listcols[grid][col].set_cell_data_func(cellrend, self.reset_style_render_func)
+                    s = column[colheading]
 
+                self.listcols[grid].append(gtk.TreeViewColumn(s))
+                view.append_column(self.listcols[grid][col])
+                if column[colformat] == '%s':
+                    if column[colxalign] == 0.0:
+                        self.listcols[grid][col].pack_start(textcell, expand=True)
+                        self.listcols[grid][col].add_attribute(textcell, 'text', col)
+                        cellrend = textcell
+                    else:
+                        self.listcols[grid][col].pack_start(textcell50, expand=True)
+                        self.listcols[grid][col].add_attribute(textcell50, 'text', col)
+                        cellrend = textcell50
+                    self.listcols[grid][col].set_expand(True)
+                else:
+                    self.listcols[grid][col].pack_start(numcell, expand=True)
+                    self.listcols[grid][col].add_attribute(numcell, 'text', col)
+                    self.listcols[grid][col].set_expand(True)
+                    cellrend = numcell
+                    #self.listcols[grid][col].set_alignment(column[colxalign]) # no effect?
+                self.listcols[grid][col].set_clickable(True)
+                self.listcols[grid][col].connect("clicked", self.sortCols, (col,grid))
+                if col == 0:
+                    self.listcols[grid][col].set_sort_order(gtk.SORT_DESCENDING)
+                    self.listcols[grid][col].set_sort_indicator(True)
+                if column[coltype] == 'cash':
+                    self.listcols[grid][col].set_cell_data_func(numcell, self.ledger_style_render_func)
+                else:
+                    self.listcols[grid][col].set_cell_data_func(cellrend, self.reset_style_render_func)
+ 
         rows = len(result) # +1 for title row
 
         while sqlrow < rows:
